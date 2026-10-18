@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseResume, looksLikeResume } from "@/lib/parse";
-import { callClaude, extractJson, AUDIT_MODEL } from "@/lib/anthropic";
-import { AUDIT_SYSTEM, buildAuditPrompt, type AuditResult } from "@/lib/prompts";
+import { callClaudeStructured, AUDIT_MODEL } from "@/lib/anthropic";
+import { AUDIT_SYSTEM, AUDIT_SCHEMA, buildAuditPrompt, type AuditResult } from "@/lib/prompts";
 import { saveAudit, uid, type AuditRecord } from "@/lib/store";
 
 export const maxDuration = 120;
@@ -55,14 +55,19 @@ export async function POST(req: NextRequest) {
     // Retry up to 3 times on an empty or unreadable answer.
     for (let attempt = 0; attempt < 3 && !result; attempt++) {
       try {
-        const raw = await callClaude({
+        result = await callClaudeStructured<AuditResult>({
           model: AUDIT_MODEL,
           system: AUDIT_SYSTEM,
-          messages: [{ role: "user", content: buildAuditPrompt(text) }],
+          prompt: buildAuditPrompt(text),
+          toolName: "submit_audit",
+          toolDescription: "Submit the completed resume audit.",
+          schema: AUDIT_SCHEMA,
           maxTokens: 8192,
-          temperature: 0.2,
         });
-        result = extractJson<AuditResult>(raw);
+        if (typeof result?.overall_score !== "number" || !Array.isArray(result.findings)) {
+          result = null;
+          throw new Error("Audit form came back incomplete.");
+        }
       } catch (e) {
         lastErr = e;
         console.error(`[audit] attempt ${attempt + 1} failed`, e);

@@ -43,7 +43,54 @@ Also include 2 to 3 strengths: real things the resume does well, each quoting th
 For findings: quote the EXACT text from the resume (copy it character-for-character; quotes are used to highlight the resume, so exactness matters). Severity "critical" for objective statements, zero-metric experience sections, ATS-breaking formatting, missing summary. Severity "warning" for the rest. Split each finding into two fields. "note": plain English, what is wrong and why it costs interviews, in 2 sentences or fewer, with no fix or rewrite in it. "fix": the one-line fix or rewritten line (using only resume facts, with [N], [X%], or [$] placeholders where the resume is silent).
 `.trim();
 
-export const AUDIT_SYSTEM = `You audit resumes and return STRICT JSON only. No prose, no markdown fences, no commentary: just the JSON object.`;
+export const AUDIT_SYSTEM = `You audit resumes. Always submit your audit by calling the submit_audit tool. No prose outside the tool call.`;
+
+/** The form Claude fills in. Field meanings match the rubric above. */
+export const AUDIT_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    overall_score: { type: "integer", minimum: 0, maximum: 100 },
+    categories: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          score: { type: "number" },
+          max: { type: "number" },
+        },
+        required: ["name", "score", "max"],
+      },
+    },
+    findings: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          section: { type: "string" },
+          severity: { type: "string", enum: ["critical", "warning"] },
+          quote: { type: "string", description: "Exact text copied from the resume" },
+          note: { type: "string", description: "What is wrong and why it costs interviews. No fix." },
+          fix: { type: "string", description: "The one-line fix or rewrite" },
+        },
+        required: ["section", "severity", "quote", "note", "fix"],
+      },
+    },
+    strengths: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          quote: { type: "string" },
+          note: { type: "string" },
+        },
+        required: ["quote", "note"],
+      },
+    },
+    top_weak_spots: { type: "array", items: { type: "string" } },
+  },
+  required: ["overall_score", "categories", "findings", "strengths", "top_weak_spots"],
+};
 
 export function buildAuditPrompt(resumeText: string): string {
   return `${RUBRIC}
@@ -53,7 +100,7 @@ RESUME TO AUDIT:
 ${resumeText.slice(0, 12000)}
 ---
 
-Return STRICT JSON with exactly this shape:
+Submit the audit with the submit_audit tool, using this shape:
 {
   "overall_score": <0-100 integer>,
   "categories": [{"name": "<category name>", "score": <number>, "max": <number>}],
