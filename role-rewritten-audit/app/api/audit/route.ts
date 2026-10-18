@@ -52,19 +52,20 @@ export async function POST(req: NextRequest) {
     // The model occasionally returns malformed JSON — retry once before failing.
     let result: AuditResult | null = null;
     let lastErr: unknown = null;
-    for (let attempt = 0; attempt < 2 && !result; attempt++) {
-      const raw = await callClaude({
-        model: AUDIT_MODEL,
-        system: AUDIT_SYSTEM,
-        messages: [{ role: "user", content: buildAuditPrompt(text) }],
-        maxTokens: 8192,
-        temperature: 0.2,
-      });
+    // Retry up to 3 times on an empty or unreadable answer.
+    for (let attempt = 0; attempt < 3 && !result; attempt++) {
       try {
+        const raw = await callClaude({
+          model: AUDIT_MODEL,
+          system: AUDIT_SYSTEM,
+          messages: [{ role: "user", content: buildAuditPrompt(text) }],
+          maxTokens: 8192,
+          temperature: 0.2,
+        });
         result = extractJson<AuditResult>(raw);
       } catch (e) {
         lastErr = e;
-        console.error(`[audit] JSON parse failed (attempt ${attempt + 1})`, e);
+        console.error(`[audit] attempt ${attempt + 1} failed`, e);
       }
     }
     if (!result) throw lastErr ?? new Error("Model did not return JSON.");

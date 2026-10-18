@@ -45,12 +45,17 @@ export async function callClaude(opts: {
   }
   const json = (await res.json()) as {
     content: Array<{ type: string; text?: string }>;
+    stop_reason?: string;
   };
   const text = json.content
     .filter((b) => b.type === "text" && b.text)
     .map((b) => b.text as string)
     .join("\n");
-  if (!text) throw new Error("Empty response from Anthropic API.");
+  if (!text) {
+    throw new Error(
+      `Empty response from Anthropic API (stop_reason: ${json.stop_reason ?? "unknown"}, blocks: ${json.content.map((b) => b.type).join(",") || "none"}).`
+    );
+  }
   return text;
 }
 
