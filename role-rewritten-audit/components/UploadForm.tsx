@@ -29,6 +29,13 @@ export default function UploadForm() {
       const res = await fetch("/api/audit", { method: "POST", body: form });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Audit failed.");
+      // Hand the full audit to the results page via session storage, so it
+      // doesn't need a second server round-trip (unreliable on serverless).
+      try {
+        sessionStorage.setItem(`audit:${json.id}`, JSON.stringify(json));
+      } catch {
+        /* storage unavailable — results page will try the API */
+      }
       router.push(`/results/${json.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
