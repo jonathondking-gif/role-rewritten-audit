@@ -68,7 +68,7 @@ export default function ReviewDashboard({ initialAuthed }: { initialAuthed: bool
       setMsg(
         action === "approve"
           ? json.stubbed
-            ? "Approved — email stubbed (no Resend key), saved to outbox."
+            ? "Approved. Email stubbed (no Resend key), saved to outbox."
             : "Approved and sent to customer."
           : "Edits saved."
       );
@@ -90,16 +90,16 @@ export default function ReviewDashboard({ initialAuthed }: { initialAuthed: bool
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Review password"
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 focus:border-red-500 focus:outline-none"
+            className="w-full rounded-lg border border-[#E0E7F1] px-4 py-3 focus:border-[#1D6FE0] focus:outline-none"
           />
           <button
             type="submit"
-            className="w-full rounded-lg bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-700"
+            className="w-full rounded-lg bg-[#0D2A4C] px-4 py-3 font-semibold text-white hover:bg-[#14365E]"
           >
             Sign in
           </button>
           {loginError && (
-            <p className="text-center text-sm font-medium text-red-600">{loginError}</p>
+            <p className="text-center text-sm font-medium text-[#D93B30]">{loginError}</p>
           )}
         </form>
       </div>
@@ -109,37 +109,37 @@ export default function ReviewDashboard({ initialAuthed }: { initialAuthed: bool
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="text-2xl font-bold">Review queue</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-[#526379]">
         AI drafts land here. Nothing reaches a customer until you approve it.
       </p>
       {msg && (
-        <p className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+        <p className="mt-4 rounded-lg bg-[#EAF3FF] px-4 py-3 text-sm font-medium text-[#1D6FE0]">
           {msg}
         </p>
       )}
       {orders.length === 0 && (
-        <p className="mt-8 rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+        <p className="mt-8 rounded-xl border border-dashed border-[#E0E7F1] p-10 text-center text-[#526379]">
           No orders yet. They&apos;ll appear here after a customer checks out.
         </p>
       )}
       <div className="mt-6 space-y-8">
         {orders.map((o) => (
-          <div key={o.id} className="rounded-2xl border border-slate-200 bg-white p-6">
+          <div key={o.id} className="rounded-2xl border border-[#E0E7F1] bg-white p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-bold">
                   {o.tier} · ${(o.amountCents / 100).toFixed(0)}
                 </p>
-                <p className="text-sm text-slate-500">
-                  {o.email} · {o.fileName} · audit score {o.auditScore ?? "—"}/100 ·{" "}
+                <p className="text-sm text-[#526379]">
+                  {o.email} · {o.fileName} · audit score {o.auditScore ?? "n/a"}/100 ·{" "}
                   {new Date(o.createdAt).toLocaleString()}
                 </p>
               </div>
               <span
                 className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${
                   o.status === "sent"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-amber-100 text-amber-700"
+                    ? "bg-[#EAF3FF] text-[#1D6FE0]"
+                    : "bg-[#FFE27A] text-[#8A6D00]"
                 }`}
               >
                 {o.status.replace("_", " ")}
@@ -148,16 +148,16 @@ export default function ReviewDashboard({ initialAuthed }: { initialAuthed: bool
 
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#526379]">
                   Original resume
                 </p>
-                <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-4 font-serif text-sm leading-6">
+                <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-[#F6F9FE] p-4 font-serif text-sm leading-6">
                   {o.originalText}
                 </pre>
               </div>
               <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
-                  AI draft — edit freely, then approve
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#526379]">
+                  AI draft. Edit freely, then approve
                 </p>
                 <textarea
                   value={edits[o.id] ?? ""}
@@ -165,7 +165,7 @@ export default function ReviewDashboard({ initialAuthed }: { initialAuthed: bool
                     setEdits((prev) => ({ ...prev, [o.id]: e.target.value }))
                   }
                   rows={18}
-                  className="w-full rounded-lg border border-slate-300 p-4 font-serif text-sm leading-6 focus:border-red-500 focus:outline-none"
+                  className="w-full rounded-lg border border-[#E0E7F1] p-4 font-serif text-sm leading-6 focus:border-[#1D6FE0] focus:outline-none"
                 />
               </div>
             </div>
@@ -174,14 +174,14 @@ export default function ReviewDashboard({ initialAuthed }: { initialAuthed: bool
               <button
                 onClick={() => decide(o.id, "save")}
                 disabled={busy !== null}
-                className="rounded-lg border border-slate-300 px-5 py-2.5 font-semibold hover:bg-slate-50 disabled:opacity-60"
+                className="rounded-lg border border-[#E0E7F1] px-5 py-2.5 font-semibold hover:bg-[#F6F9FE] disabled:opacity-60"
               >
                 {busy === o.id + "save" ? "Saving…" : "Save edits"}
               </button>
               <button
                 onClick={() => decide(o.id, "approve")}
                 disabled={busy !== null || o.status === "sent"}
-                className="rounded-lg bg-red-600 px-5 py-2.5 font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                className="rounded-xl bg-[#1D6FE0] px-5 py-2.5 font-semibold text-white hover:bg-[#1557B8] disabled:opacity-60"
               >
                 {busy === o.id + "approve" ? "Sending…" : "Approve & send to customer"}
               </button>

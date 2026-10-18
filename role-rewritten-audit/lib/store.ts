@@ -47,6 +47,11 @@ export interface AuditFinding {
   note: string;
 }
 
+export interface AuditStrength {
+  quote: string;
+  note: string;
+}
+
 export interface AuditRecord {
   id: string;
   createdAt: string;
@@ -55,9 +60,11 @@ export interface AuditRecord {
   overallScore: number;
   categories: AuditCategory[];
   findings: AuditFinding[];
+  strengths: AuditStrength[];
   topWeakSpots: string[];
   email?: string;
   unlocked: boolean;
+  recruitingFirm?: string;
 }
 
 export interface Lead {

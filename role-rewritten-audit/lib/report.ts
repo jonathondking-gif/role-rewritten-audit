@@ -72,19 +72,19 @@ export function renderAnnotatedResumeHtml(
 }
 
 export function scoreColor(score: number): string {
-  if (score >= 75) return "#16a34a";
-  if (score >= 50) return "#d97706";
-  return "#dc2626";
+  if (score >= 75) return "#1D6FE0";
+  if (score >= 50) return "#E8A317";
+  return "#D93B30";
 }
 
 function findingItem(f: AuditFinding, i: number): string {
-  const color = f.severity === "critical" ? "#dc2626" : "#d97706";
+  const color = f.severity === "critical" ? "#D93B30" : "#E8A317";
   const label = f.severity === "critical" ? "Critical" : "Warning";
   return `
     <div style="border-left:4px solid ${color};padding:12px 16px;margin:0 0 12px;background:#fff;border-radius:0 8px 8px 0;box-shadow:0 1px 3px rgba(0,0,0,.08)">
-      <div style="font-size:12px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${i + 1}. ${label} — ${escapeHtml(f.section)}</div>
-      <div style="font-size:13px;color:#374151;font-style:italic;margin-bottom:6px">“${escapeHtml(f.quote)}”</div>
-      <div style="font-size:14px;color:#111827;line-height:1.5">${escapeHtml(f.note)}</div>
+      <div style="font-size:12px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${i + 1}. ${label}: ${escapeHtml(f.section)}</div>
+      <div style="font-size:13px;color:#526379;font-style:italic;margin-bottom:6px">“${escapeHtml(f.quote)}”</div>
+      <div style="font-size:14px;color:#0D2A4C;line-height:1.5">${escapeHtml(f.note)}</div>
     </div>`;
 }
 
@@ -95,10 +95,10 @@ export function buildAuditEmailHtml(a: AuditRecord, resultsUrl: string): string 
     .map(
       (c) => `
       <div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:#374151;margin-bottom:4px">
-          <span>${escapeHtml(c.name)}</span><span><strong>${c.score}</strong>/${c.max}</span>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#526379;margin-bottom:4px">
+          <span>${escapeHtml(c.name)}</span><span><strong style="color:#0D2A4C">${c.score}</strong>/${c.max}</span>
         </div>
-        <div style="background:#e5e7eb;border-radius:999px;height:8px">
+        <div style="background:#E0E7F1;border-radius:999px;height:8px">
           <div style="background:${color};border-radius:999px;height:8px;width:${Math.round(
             (c.score / c.max) * 100
           )}%"></div>
@@ -108,37 +108,49 @@ export function buildAuditEmailHtml(a: AuditRecord, resultsUrl: string): string 
     .join("");
 
   const findings = a.findings.map(findingItem).join("");
+  const strengths = (a.strengths ?? [])
+    .map(
+      (s) => `
+      <div style="border-left:4px solid #1D6FE0;padding:12px 16px;margin:0 0 12px;background:#fff;border-radius:0 8px 8px 0;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+        <div style="font-size:13px;color:#526379;font-style:italic;margin-bottom:6px">"${escapeHtml(s.quote)}"</div>
+        <div style="font-size:14px;color:#0D2A4C;line-height:1.5">${escapeHtml(s.note)}</div>
+      </div>`
+    )
+    .join("");
   const weakSpots = a.topWeakSpots
     .map((w) => `<li style="margin-bottom:6px">${escapeHtml(w)}</li>`)
     .join("");
 
-  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif">
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F6F9FE;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif">
   <div style="max-width:640px;margin:0 auto;padding:24px">
-    <div style="background:#111827;color:#fff;border-radius:12px;padding:28px;text-align:center;margin-bottom:20px">
-      <div style="font-size:14px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:8px">Role Rewritten — Free Resume Audit</div>
-      <div style="font-size:56px;font-weight:800;color:${color}">${a.overallScore}<span style="font-size:24px;color:#9ca3af">/100</span></div>
-      <div style="font-size:14px;color:#d1d5db;margin-top:8px">Your resume, graded like a hiring manager grades it.</div>
+    <div style="background:#0D2A4C;color:#fff;border-radius:12px;padding:28px;text-align:center;margin-bottom:20px">
+      <div style="font-size:14px;text-transform:uppercase;letter-spacing:.1em;color:#9DB2CC;margin-bottom:8px">Role Rewritten: Free Resume Audit</div>
+      <div style="font-size:56px;font-weight:800;color:${color}">${a.overallScore}<span style="font-size:24px;color:#9DB2CC">/100</span></div>
+      <div style="font-size:14px;color:#DCE9FF;margin-top:8px">Your resume, graded like a hiring manager grades it.</div>
     </div>
     <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:700;margin-bottom:12px">Category breakdown</div>${cats}
+      <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">Category breakdown</div>${cats}
     </div>
     <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:700;margin-bottom:12px">Your resume, marked up</div>
-      <div style="font-size:13px;line-height:1.7;color:#111827;background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;padding:16px;font-family:Georgia,serif">${renderAnnotatedResumeHtml(a.resumeText, a.findings)}</div>
-      <div style="font-size:12px;color:#6b7280;margin-top:8px"><span style="display:inline-block;width:12px;height:12px;background:#fecaca;border-radius:3px;vertical-align:middle"></span> critical &nbsp;<span style="display:inline-block;width:12px;height:12px;background:#fde68a;border-radius:3px;vertical-align:middle"></span> warning — numbered to match the notes below</div>
+      <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">This is how hiring software reads your resume</div>
+      <div style="font-size:13px;line-height:1.7;color:#0D2A4C;background:#F6F9FE;border:1px solid #E0E7F1;border-radius:8px;padding:16px;font-family:Georgia,serif">${renderAnnotatedResumeHtml(a.resumeText, a.findings)}</div>
+      <div style="font-size:12px;color:#526379;margin-top:8px"><span style="display:inline-block;width:12px;height:12px;background:#D93B30;border-radius:3px;vertical-align:middle"></span> critical &nbsp;<span style="display:inline-block;width:12px;height:12px;background:#FFE27A;border-radius:3px;vertical-align:middle"></span> warning. Numbered to match the notes below.</div>
     </div>
     <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:700;margin-bottom:12px">What to fix, in order</div>${findings}
+      <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">What's working</div>${strengths}
     </div>
     <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:700;margin-bottom:12px">Biggest weak spots</div>
-      <ul style="font-size:14px;color:#111827;padding-left:20px;margin:0">${weakSpots}</ul>
+      <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">What to fix, in order</div>${findings}
     </div>
-    <div style="background:#111827;border-radius:12px;padding:28px;text-align:center">
+    <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">Biggest weak spots</div>
+      <ul style="font-size:14px;color:#0D2A4C;padding-left:20px;margin:0">${weakSpots}</ul>
+    </div>
+    <div style="background:#0D2A4C;border-radius:12px;padding:28px;text-align:center">
       <div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:8px">Want this rebuilt properly?</div>
-      <div style="color:#9ca3af;font-size:14px;margin-bottom:16px">AI drafts it. A 20-year hiring veteran reviews every line before it reaches you.</div>
-      <a href="${escapeHtml(resultsUrl)}" style="display:inline-block;background:#dc2626;color:#fff;font-weight:700;font-size:16px;padding:14px 32px;border-radius:8px;text-decoration:none">Get my resume rebuilt — from $179</a>
+      <div style="color:#9DB2CC;font-size:14px;margin-bottom:16px">AI drafts it. A recruiter with 15+ years of hiring experience reviews every line before it reaches you.</div>
+      <a href="${escapeHtml(resultsUrl)}" style="display:inline-block;background:#1D6FE0;color:#fff;font-weight:700;font-size:16px;padding:14px 32px;border-radius:12px;text-decoration:none">Get my resume rebuilt, from $179</a>
     </div>
-    <div style="text-align:center;font-size:12px;color:#9ca3af;margin-top:16px">Role Rewritten · Every resume crosses a real hiring manager's desk.</div>
+    <div style="text-align:center;font-size:12px;color:#526379;margin-top:16px">Role Rewritten. Written by a recruiter. Built to get past one.</div>
   </div></body></html>`;
 }

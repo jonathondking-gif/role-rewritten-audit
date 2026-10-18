@@ -4,7 +4,7 @@ export default function ScoreDial({ score, size = 180 }: { score: number; size?:
   const r = size / 2 - 14;
   const c = 2 * Math.PI * r;
   const frac = Math.max(0, Math.min(100, score)) / 100;
-  const color = score >= 75 ? "#16a34a" : score >= 50 ? "#d97706" : "#dc2626";
+  const color = score >= 75 ? "#1D6FE0" : score >= 50 ? "#E8A317" : "#D93B30";
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <circle

@@ -10,7 +10,7 @@ export const TIERS: Tier[] = [
     id: "resume",
     name: "Resume Rebuild",
     priceCents: 17900,
-    blurb: "Full professional rewrite, ATS-optimized, delivered in 24 hours.",
+    blurb: "Full professional rewrite, ATS-optimized, delivered within 24 hours on business days.",
   },
   {
     id: "resume_linkedin",
@@ -23,6 +23,12 @@ export const TIERS: Tier[] = [
     name: "Executive Package",
     priceCents: 49900,
     blurb: "For directors and VPs: everything plus cover letter and a 30-min strategy call.",
+  },
+  {
+    id: "tailoring",
+    name: "Job Tailoring",
+    priceCents: 4900,
+    blurb: "Your resume tuned to one specific job posting.",
   },
 ];
 

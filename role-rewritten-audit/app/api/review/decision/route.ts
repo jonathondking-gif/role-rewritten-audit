@@ -41,16 +41,16 @@ export async function POST(req: NextRequest) {
       const sent = await sendEmail({
         to: order.email,
         subject: "Your professionally rebuilt resume is ready",
-        html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif">
+        html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F6F9FE;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif">
           <div style="max-width:640px;margin:0 auto;padding:24px">
-            <div style="background:#111827;color:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
+            <div style="background:#0D2A4C;color:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
               <div style="font-size:18px;font-weight:700">Your rebuilt resume is ready.</div>
-              <div style="font-size:14px;color:#9ca3af;margin-top:6px">Reviewed line-by-line by a 20-year hiring veteran before delivery.</div>
+              <div style="font-size:14px;color:#9DB2CC;margin-top:6px">Reviewed line-by-line by a recruiter with 15+ years of hiring experience before delivery.</div>
             </div>
             <div style="background:#fff;border-radius:12px;padding:24px">
-              <pre style="white-space:pre-wrap;font-family:Georgia,serif;font-size:14px;line-height:1.6;color:#111827;margin:0">${escapeHtml(finalText)}</pre>
+              <pre style="white-space:pre-wrap;font-family:Georgia,serif;font-size:14px;line-height:1.6;color:#0D2A4C;margin:0">${escapeHtml(finalText)}</pre>
             </div>
-            <div style="text-align:center;font-size:12px;color:#9ca3af;margin-top:16px">Role Rewritten · Questions? Reply to this email.</div>
+            <div style="text-align:center;font-size:12px;color:#526379;margin-top:16px">Role Rewritten. Questions? Reply to this email.</div>
           </div></body></html>`,
       });
       updateOrder(orderId!, {
