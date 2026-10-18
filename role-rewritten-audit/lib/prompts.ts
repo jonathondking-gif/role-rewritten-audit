@@ -111,29 +111,3 @@ Submit the audit with the submit_audit tool, using this shape:
 }
 Include 3 to 14 findings, ordered most damaging first, and 2 to 3 strengths. overall_score should reflect the weighted rubric, not an average of vibes.`;
 }
-
-const REBUILD_METHOD = `
-You are an expert resume writer. Rewrite the resume below using the proven before/after method:
-
-1. POSITIONING: Add a target title line and a sharp 3-line professional summary using the formula years + specialty + proof. Never write an objective statement.
-2. FINDABILITY: Add a Core Competencies keyword block (8-12 phrases matching the candidate's target roles) for ATS and recruiter skimming.
-3. PROOF: Convert every duty into an XYZ achievement bullet: "Accomplished X as measured by Y, by doing Z." Start each bullet with a strong action verb. Quantify everything that can carry a number. Where the original states a duty with no metric, rewrite it as the strongest plausible achievement WITHOUT inventing specific numbers: use the scope that is stated or leave the metric out rather than fabricating one.
-4. POLISH: Single-column, standard headings (Professional Summary, Core Competencies, Professional Experience, Education), standard fonts implied by plain text, no tables or graphics, bullets only under experience, no "References available upon request," city/state only (no street address), most recent role first.
-
-RULES: Keep all real facts, employers, titles, and dates from the original. Do not invent employers, degrees, or metrics. Output the full rewritten resume as clean plain text with clear section headings. No commentary before or after.
-`.trim();
-
-export const REBUILD_SYSTEM = `You rewrite resumes using the before/after method. Output only the rewritten resume as plain text: no commentary.`;
-
-export function buildRebuildPrompt(
-  resumeText: string,
-  targetRole?: string
-): string {
-  return `${REBUILD_METHOD}
-
-${targetRole ? `The candidate is targeting: ${targetRole}. Tailor keywords and summary to this.\n` : ""}
-ORIGINAL RESUME:
----
-${resumeText.slice(0, 12000)}
----`;
-}

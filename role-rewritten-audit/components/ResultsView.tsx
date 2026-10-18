@@ -38,21 +38,21 @@ interface Strength {
 const TIERS = [
   {
     id: "resume",
-    name: "Resume Rebuild",
+    name: "Resume",
     price: "$179",
-    blurb: "Full professional rewrite, ATS-optimized, delivered within 24 hours on business days.",
+    blurb: "Full rewrite, your choice of 18 designs, plain version for online applications, unlimited revisions for 14 days.",
   },
   {
     id: "resume_linkedin",
-    name: "Resume + LinkedIn",
+    name: "Resume and LinkedIn",
     price: "$279",
-    blurb: "Everything above, plus a rewritten LinkedIn profile. Most popular.",
+    blurb: "Everything above, plus LinkedIn headline, About section, experience entries, and recruiter outreach email templates. Most popular.",
   },
   {
     id: "executive",
-    name: "Executive Package",
+    name: "Executive",
     price: "$499",
-    blurb: "For directors & VPs: everything plus cover letter and strategy call.",
+    blurb: "Everything above, plus a cover letter, a 30-minute strategy call, and a second version for another target role.",
   },
 ];
 

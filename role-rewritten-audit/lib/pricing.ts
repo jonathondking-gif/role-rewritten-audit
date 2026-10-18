@@ -8,21 +8,21 @@ export interface Tier {
 export const TIERS: Tier[] = [
   {
     id: "resume",
-    name: "Resume Rebuild",
+    name: "Resume",
     priceCents: 17900,
-    blurb: "Full professional rewrite, ATS-optimized, delivered within 24 hours on business days.",
+    blurb: "Full rewrite, your choice of 18 designs, plain version for online applications, unlimited revisions for 14 days.",
   },
   {
     id: "resume_linkedin",
-    name: "Resume + LinkedIn",
+    name: "Resume and LinkedIn",
     priceCents: 27900,
-    blurb: "Everything in Resume Rebuild, plus a rewritten LinkedIn profile. Most popular.",
+    blurb: "Everything in Resume, plus LinkedIn headline, About section, experience entries, and recruiter outreach email templates. Most popular.",
   },
   {
     id: "executive",
-    name: "Executive Package",
+    name: "Executive",
     priceCents: 49900,
-    blurb: "For directors and VPs: everything plus cover letter and a 30-min strategy call.",
+    blurb: "Everything above, plus a cover letter, a 30-minute strategy call, and a second version for another target role.",
   },
   {
     id: "tailoring",

@@ -74,19 +74,6 @@ export interface Lead {
   createdAt: string;
 }
 
-export interface Order {
-  id: string;
-  auditId: string;
-  email: string;
-  tier: string;
-  amountCents: number;
-  status: "pending_payment" | "paid" | "draft_ready" | "sent" | "cancelled";
-  draftText?: string;
-  editedText?: string;
-  createdAt: string;
-  stripeSessionId?: string;
-}
-
 // ---- Accessors ----
 
 export function saveAudit(a: AuditRecord) {
@@ -104,28 +91,6 @@ export function saveLead(l: Lead) {
   const all = read<Lead[]>("leads.json", []);
   if (!all.some((x) => x.email === l.email)) all.push(l);
   write("leads.json", all);
-}
-
-export function saveOrder(o: Order) {
-  const all = read<Record<string, Order>>("orders.json", {});
-  all[o.id] = o;
-  write("orders.json", all);
-}
-
-export function getOrder(id: string): Order | null {
-  const all = read<Record<string, Order>>("orders.json", {});
-  return all[id] ?? null;
-}
-
-export function listOrders(): Order[] {
-  const all = read<Record<string, Order>>("orders.json", {});
-  return Object.values(all).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-export function updateOrder(id: string, patch: Partial<Order>) {
-  const o = getOrder(id);
-  if (!o) return;
-  saveOrder({ ...o, ...patch });
 }
 
 export function appendOutbox(entry: { to: string; subject: string; html: string }) {

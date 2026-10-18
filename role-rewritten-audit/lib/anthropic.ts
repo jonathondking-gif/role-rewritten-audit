@@ -1,7 +1,5 @@
 export const AUDIT_MODEL =
   process.env.AUDIT_MODEL || "claude-haiku-5-5";
-export const REBUILD_MODEL =
-  process.env.REBUILD_MODEL || "claude-opus-5-5";
 
 const API_URL = `${process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com"}/v1/messages`;
 const API_VERSION = "2023-06-01";

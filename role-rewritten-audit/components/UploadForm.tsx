@@ -11,17 +11,30 @@ export default function UploadForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  // A Word file gets a text-only view, so pause once and suggest a PDF.
+  const [pendingDocx, setPendingDocx] = useState<File | null>(null);
 
-  async function submit(file: File) {
+  function pick(file: File) {
     setError(null);
+    setPendingDocx(null);
     if (!/\.(pdf|docx)$/i.test(file.name)) {
-      setError("Please upload a PDF or DOCX resume.");
+      setError("Please upload a PDF or Word (.docx) resume.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
       setError("That file is over 5MB. Please upload a smaller resume.");
       return;
     }
+    if (/\.docx$/i.test(file.name)) {
+      setPendingDocx(file);
+      return;
+    }
+    submit(file);
+  }
+
+  async function submit(file: File) {
+    setError(null);
+    setPendingDocx(null);
     setFileName(file.name);
     setBusy(true);
     try {
@@ -58,7 +71,7 @@ export default function UploadForm() {
           e.preventDefault();
           setDragging(false);
           const f = e.dataTransfer.files?.[0];
-          if (f) submit(f);
+          if (f) pick(f);
         }}
         className={`cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition ${
           dragging
@@ -73,7 +86,8 @@ export default function UploadForm() {
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) submit(f);
+            e.target.value = "";
+            if (f) pick(f);
           }}
         />
         {busy ? (
@@ -95,11 +109,36 @@ export default function UploadForm() {
               Drop your resume here, or click to upload
             </p>
             <p className="mt-1 text-sm text-[#526379]">
-              PDF recommended · DOCX also accepted · under 5MB · free · no account needed
+              Upload a PDF to see your resume marked up page by page. Word files work too, with a text-only view. Under 5MB. Free. No account needed.
             </p>
           </div>
         )}
       </div>
+
+      {pendingDocx && !busy && (
+        <div className="mt-3 rounded-xl border border-[#1D6FE0] bg-[#EAF3FF] p-4 text-sm text-[#0D2A4C]">
+          <p>
+            <span className="font-bold">Tip:</span> save your resume as a PDF first (File, Save As, PDF) to see every
+            problem marked on your actual resume. Or continue with the Word file for a text-only review.
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="rounded-xl bg-[#1D6FE0] px-4 py-2 font-bold text-white hover:bg-[#1557B8]"
+            >
+              Upload a PDF instead
+            </button>
+            <button
+              type="button"
+              onClick={() => submit(pendingDocx)}
+              className="rounded-xl border border-[#1D6FE0] bg-white px-4 py-2 font-bold text-[#1D6FE0] hover:bg-[#F6F9FE]"
+            >
+              Continue with the Word file
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p className="mt-3 rounded-lg bg-[#fdeceb] px-4 py-3 text-sm font-medium text-[#D93B30]">
