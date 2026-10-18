@@ -6,6 +6,21 @@ import { saveAudit, uid, type AuditRecord } from "@/lib/store";
 
 export const maxDuration = 120;
 
+/**
+ * The overall score is the category scores added up, so the headline number
+ * always matches the bars. Falls back to the model's number only if the
+ * categories are missing.
+ */
+function scoreFromCategories(r: AuditResult): number {
+  const cats = (r.categories ?? []).filter(
+    (c) => typeof c.score === "number" && typeof c.max === "number" && c.max > 0
+  );
+  const max = cats.reduce((s, c) => s + c.max, 0);
+  if (max === 0) return Math.max(0, Math.min(100, Math.round(r.overall_score)));
+  const got = cats.reduce((s, c) => s + Math.max(0, Math.min(c.score, c.max)), 0);
+  return Math.round((got / max) * 100);
+}
+
 const MAX_BYTES = 5 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
@@ -90,7 +105,7 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
       fileName: name,
       resumeText: text,
-      overallScore: Math.max(0, Math.min(100, Math.round(result.overall_score))),
+      overallScore: scoreFromCategories(result),
       categories: result.categories ?? [],
       findings: result.findings ?? [],
       strengths: result.strengths ?? [],
