@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { AuditRecord } from "@/lib/store";
 import { getAudit, saveAudit, saveLead } from "@/lib/db";
 import { sendEmail, type EmailAttachment } from "@/lib/email";
 import { buildAuditEmailHtml, buildFullFindingsHtml, escapeHtml } from "@/lib/report";
@@ -9,15 +8,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LEAD_NOTIFY_EMAIL = process.env.LEAD_NOTIFY_EMAIL || "jon@rolerewritten.com";
 
 /**
- * Email gate: visitor unlocks the full annotated report by leaving an email.
+ * Email gate: visitor unlocks the top 3 explained problems by leaving an email.
  * Fires the instant visual audit email (or stubs it when Resend is unset).
  */
 export async function POST(req: NextRequest) {
   try {
-    const { auditId, email, audit: bodyAudit, pages } = (await req.json()) as {
+    const { auditId, email, pages } = (await req.json()) as {
       auditId?: string;
       email?: string;
-      audit?: AuditRecord;
       pages?: unknown;
     };
     // Marked-up page images drawn in the visitor's browser (JPEG data URLs).
@@ -34,27 +32,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    // The client may hand us the audit it already holds, since serverless
-    // instances don't share local disk. Normalize the API (snake_case)
-    // shape to the AuditRecord shape.
-    function toRecord(b: any, id: string): AuditRecord | null {
-      if (!b || b.id !== id) return null;
-      return {
-        id,
-        createdAt: new Date().toISOString(),
-        fileName: b.file_name || "resume",
-        resumeText: b.resume_text || "",
-        overallScore: b.overall_score ?? 0,
-        categories: b.categories ?? [],
-        findings: b.findings ?? [],
-        strengths: Array.isArray(b.strengths) ? b.strengths : [],
-        topWeakSpots: b.top_weak_spots ?? [],
-        unlocked: false,
-      };
-    }
-    const audit = (await getAudit(auditId)) ?? toRecord(bodyAudit, auditId);
+    // Only audits this app produced and saved can be emailed. Never accept
+    // an audit from the browser: that would let anyone send arbitrary text
+    // from jon@rolerewritten.com to any address.
+    const audit = await getAudit(auditId);
     if (!audit) {
-      return NextResponse.json({ error: "Audit not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "This audit has expired or could not be found. Please upload your resume again." },
+        { status: 404 }
+      );
     }
 
     const clean = email.trim().toLowerCase();

@@ -297,7 +297,7 @@ export default function ResumeMarkup({
         {tab === "ats"
           ? "Most companies run resumes through an Applicant Tracking System (ATS). This is the text it pulls from your file. Anything scrambled or missing here is scrambled or missing for the recruiter searching for you."
           : locked
-          ? "Numbers match the notes in your full report."
+          ? "Numbered by damage. #1 costs you the most."
           : "Tap a number to jump to its note."}
       </p>
 
@@ -361,7 +361,7 @@ export default function ResumeMarkup({
             ))}
             {locked && marked > 0 && (
               <p className="text-center text-sm font-semibold text-[#0D2A4C]">
-                {marked} {marked === 1 ? "problem" : "problems"} marked on your resume. Unlock your full report below to see what each one costs you and how to fix it.
+                {marked} {marked === 1 ? "problem" : "problems"} marked on your resume. Enter your email below to see what the top 3 cost you.
               </p>
             )}
           </div>

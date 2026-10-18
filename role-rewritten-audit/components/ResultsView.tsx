@@ -107,19 +107,12 @@ export default function ResultsView() {
     setUnlocking(true);
     setError(null);
     try {
-      // Hand the server the audit we already hold, in case it runs on a
-      // fresh instance without it on disk.
-      const cached =
-        typeof sessionStorage !== "undefined"
-          ? sessionStorage.getItem(`audit:${id}`)
-          : null;
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           auditId: id,
           email,
-          audit: cached ? JSON.parse(cached) : undefined,
           pages: getMarkedPages(id),
         }),
       });
@@ -194,7 +187,7 @@ export default function ResultsView() {
             {data.weak_spots_preview.map((w, i) => (
               <li key={i}>{w}</li>
             ))}
-            <li className="text-[#526379]">…and more in the full report.</li>
+            <li className="text-[#526379]">…and more marked on your resume.</li>
           </ul>
         </div>
       </div>
@@ -213,10 +206,10 @@ export default function ResultsView() {
       {!data.unlocked ? (
         /* Email gate */
         <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-[#E0E7F1] bg-white p-8 text-center shadow-sm">
-          <h2 className="text-xl font-bold text-[#0D2A4C]">Unlock your full marked-up report</h2>
+          <h2 className="text-xl font-bold text-[#0D2A4C]">See what your top 3 problems cost you</h2>
           <p className="mt-2 text-sm text-[#526379]">
-            See your resume with every weak spot highlighted, the category-by-category
-            breakdown, and the fixes, in order of damage. Free.
+            Your 3 most damaging problems explained, plus a free sample fix for #1.
+            I&apos;ll email you a copy with your marked-up resume.
           </p>
           <form onSubmit={unlock} className="mt-5 flex flex-col gap-3 sm:flex-row">
             <input
@@ -232,12 +225,12 @@ export default function ResultsView() {
               disabled={unlocking}
               className="rounded-xl bg-[#1D6FE0] px-6 py-3 font-bold text-white hover:bg-[#1557B8] disabled:opacity-60"
             >
-              {unlocking ? "Unlocking…" : "Show my full report"}
+              {unlocking ? "Unlocking…" : "Show my top 3"}
             </button>
           </form>
           {error && <p className="mt-3 text-sm font-medium text-[#D93B30]">{error}</p>}
           <p className="mt-3 text-xs text-[#526379]">
-            We&apos;ll also email you a copy of the full report. No spam, ever.
+            No spam, ever.
           </p>
         </div>
       ) : (
