@@ -49,14 +49,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const raw = await callClaude({
-      model: AUDIT_MODEL,
-      system: AUDIT_SYSTEM,
-      messages: [{ role: "user", content: buildAuditPrompt(text) }],
-      maxTokens: 8192,
-      temperature: 0.2,
-    });
-    const result = extractJson<AuditResult>(raw);
+    // The model occasionally returns malformed JSON — retry once before failing.
+    let result: AuditResult | null = null;
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 2 && !result; attempt++) {
+      const raw = await callClaude({
+        model: AUDIT_MODEL,
+        system: AUDIT_SYSTEM,
+        messages: [{ role: "user", content: buildAuditPrompt(text) }],
+        maxTokens: 8192,
+        temperature: 0.2,
+      });
+      try {
+        result = extractJson<AuditResult>(raw);
+      } catch (e) {
+        lastErr = e;
+        console.error(`[audit] JSON parse failed (attempt ${attempt + 1})`, e);
+      }
+    }
+    if (!result) throw lastErr ?? new Error("Model did not return JSON.");
 
     // Fallback: if the model skipped top_weak_spots, derive them from findings.
     let weakSpots = result.top_weak_spots ?? [];
@@ -81,11 +92,24 @@ export async function POST(req: NextRequest) {
     };
     saveAudit(record);
 
-    // Free preview: score + first 3 weak spots. Full report is email-gated.
+    // Return the full audit payload so the client can render the report
+    // immediately without a second server round-trip. (Serverless
+    // instances don't share local disk, so re-fetching by id is unreliable.)
+    const { renderAnnotatedResumeHtml } = await import("@/lib/report");
     return NextResponse.json({
       id,
       overall_score: record.overallScore,
       weak_spots_preview: record.topWeakSpots.slice(0, 3),
+      unlocked: false,
+      categories: record.categories,
+      findings: record.findings,
+      top_weak_spots: record.topWeakSpots,
+      annotated_html: renderAnnotatedResumeHtml(
+        record.resumeText,
+        record.findings
+      ),
+      file_name: record.fileName,
+      resume_text: record.resumeText,
     });
   } catch (e) {
     console.error("[audit] error:", e);
