@@ -1,127 +1,97 @@
-import fs from "node:fs";
-import path from "node:path";
-import crypto from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { parseResume, looksLikeResume } from "@/lib/parse";
+import { callClaude, extractJson, AUDIT_MODEL } from "@/lib/anthropic";
+import { AUDIT_SYSTEM, buildAuditPrompt, type AuditResult } from "@/lib/prompts";
+import { saveAudit, uid, type AuditRecord } from "@/lib/store";
 
-const DATA_DIR = process.env.VERCEL
-  ? path.join("/tmp", "role-rewritten-data")
-  : path.join(process.cwd(), "data");
+export const maxDuration = 120;
 
-function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+const MAX_BYTES = 5 * 1024 * 1024;
 
-function filePath(name: string) {
-  ensureDir();
-  return path.join(DATA_DIR, name);
-}
-
-function read<T>(name: string, fallback: T): T {
+export async function POST(req: NextRequest) {
   try {
-    const raw = fs.readFileSync(filePath(name), "utf8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
+    const form = await req.formData();
+    const file = form.get("file") as File | null;
+    if (!file) {
+      return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
+    }
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json(
+        { error: "File is too large. Please upload a resume under 5MB." },
+        { status: 400 }
+      );
+    }
+    const name = file.name || "resume";
+    if (!/\.(pdf|docx)$/i.test(name)) {
+      return NextResponse.json(
+        { error: "Please upload a PDF or DOCX resume." },
+        { status: 400 }
+      );
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    let text: string;
+    try {
+      text = await parseResume(buffer, name);
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Could not read that file." },
+        { status: 400 }
+      );
+    }
+    if (!looksLikeResume(text)) {
+      return NextResponse.json(
+        {
+          error:
+            "That doesn't look like a resume — we couldn't find the usual sections. Try a different file.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const raw = await callClaude({
+      model: AUDIT_MODEL,
+      system: AUDIT_SYSTEM,
+      messages: [{ role: "user", content: buildAuditPrompt(text) }],
+      maxTokens: 8192,
+      temperature: 0.2,
+    });
+    const result = extractJson<AuditResult>(raw);
+
+    // Fallback: if the model skipped top_weak_spots, derive them from findings.
+    let weakSpots = result.top_weak_spots ?? [];
+    if (!weakSpots.length && result.findings?.length) {
+      weakSpots = result.findings.slice(0, 6).map((f) => {
+        const firstSentence = f.note.split(/(?<=[.!?])\s/)[0] || f.note;
+        return `${f.section}: ${firstSentence}`.slice(0, 140);
+      });
+    }
+
+    const id = uid("aud");
+    const record: AuditRecord = {
+      id,
+      createdAt: new Date().toISOString(),
+      fileName: name,
+      resumeText: text,
+      overallScore: Math.max(0, Math.min(100, Math.round(result.overall_score))),
+      categories: result.categories ?? [],
+      findings: result.findings ?? [],
+      topWeakSpots: weakSpots,
+      unlocked: false,
+    };
+    saveAudit(record);
+
+    // Free preview: score + first 3 weak spots. Full report is email-gated.
+    return NextResponse.json({
+      id,
+      overall_score: record.overallScore,
+      weak_spots_preview: record.topWeakSpots.slice(0, 3),
+    });
+  } catch (e) {
+    console.error("[audit] error:", e);
+    return NextResponse.json(
+      { error: "The audit failed. Please try again in a moment." },
+      { status: 500 }
+    );
   }
-}
-
-function write(name: string, value: unknown) {
-  fs.writeFileSync(filePath(name), JSON.stringify(value, null, 2), "utf8");
-}
-
-export function uid(prefix: string) {
-  return `${prefix}_${crypto.randomBytes(8).toString("hex")}`;
-}
-
-// ---- Types ----
-
-export interface AuditCategory {
-  name: string;
-  score: number;
-  max: number;
-}
-
-export interface AuditFinding {
-  section: string;
-  severity: "critical" | "warning";
-  quote: string;
-  note: string;
-}
-
-export interface AuditRecord {
-  id: string;
-  createdAt: string;
-  fileName: string;
-  resumeText: string;
-  overallScore: number;
-  categories: AuditCategory[];
-  findings: AuditFinding[];
-  topWeakSpots: string[];
-  email?: string;
-  unlocked: boolean;
-}
-
-export interface Lead {
-  email: string;
-  auditId: string;
-  createdAt: string;
-}
-
-export interface Order {
-  id: string;
-  auditId: string;
-  email: string;
-  tier: string;
-  amountCents: number;
-  status: "pending_payment" | "paid" | "draft_ready" | "sent" | "cancelled";
-  draftText?: string;
-  editedText?: string;
-  createdAt: string;
-  stripeSessionId?: string;
-}
-
-// ---- Accessors ----
-
-export function saveAudit(a: AuditRecord) {
-  const all = read<Record<string, AuditRecord>>("audits.json", {});
-  all[a.id] = a;
-  write("audits.json", all);
-}
-
-export function getAudit(id: string): AuditRecord | null {
-  const all = read<Record<string, AuditRecord>>("audits.json", {});
-  return all[id] ?? null;
-}
-
-export function saveLead(l: Lead) {
-  const all = read<Lead[]>("leads.json", []);
-  if (!all.some((x) => x.email === l.email)) all.push(l);
-  write("leads.json", all);
-}
-
-export function saveOrder(o: Order) {
-  const all = read<Record<string, Order>>("orders.json", {});
-  all[o.id] = o;
-  write("orders.json", all);
-}
-
-export function getOrder(id: string): Order | null {
-  const all = read<Record<string, Order>>("orders.json", {});
-  return all[id] ?? null;
-}
-
-export function listOrders(): Order[] {
-  const all = read<Record<string, Order>>("orders.json", {});
-  return Object.values(all).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-export function updateOrder(id: string, patch: Partial<Order>) {
-  const o = getOrder(id);
-  if (!o) return;
-  saveOrder({ ...o, ...patch });
-}
-
-export function appendOutbox(entry: { to: string; subject: string; html: string }) {
-  const all = read<unknown[]>("outbox.json", []);
-  all.push({ ...entry, at: new Date().toISOString() });
-  write("outbox.json", all);
 }
