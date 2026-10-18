@@ -4,20 +4,12 @@ export async function parseResume(
 ): Promise<string> {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".pdf")) {
-    // pdf-parse v2: class-based API. Dynamic import keeps Next.js bundling happy.
-    const { PDFParse } = (await import("pdf-parse")) as unknown as {
-      PDFParse: new (opts: { data: Uint8Array }) => {
-        getText(): Promise<{ text: string }>;
-        destroy(): Promise<void>;
-      };
-    };
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
-    try {
-      const result = await parser.getText();
-      return (result.text || "").trim();
-    } finally {
-      await parser.destroy().catch(() => {});
-    }
+    // unpdf: serverless-safe PDF text extraction (pdf-parse v2 needs
+    // browser-only DOMMatrix and crashes on Vercel).
+    const { extractText } = await import("unpdf");
+    const { text } = await extractText(new Uint8Array(buffer));
+    const joined = Array.isArray(text) ? text.join("\n") : text;
+    return (joined || "").trim();
   }
   if (lower.endsWith(".docx")) {
     const mammoth = await import("mammoth");
