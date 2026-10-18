@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ScoreDial from "./ScoreDial";
 import ResumeMarkup from "./ResumeMarkup";
+import { getMarkedPages } from "@/lib/markedPages";
 
 interface Category {
   name: string;
@@ -119,6 +120,7 @@ export default function ResultsView() {
           auditId: id,
           email,
           audit: cached ? JSON.parse(cached) : undefined,
+          pages: getMarkedPages(id),
         }),
       });
       const json = await res.json();

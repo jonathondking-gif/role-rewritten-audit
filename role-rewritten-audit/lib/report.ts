@@ -93,7 +93,7 @@ function findingItem(f: AuditFinding, i: number): string {
 }
 
 /** Full email-safe HTML audit report (inline styles throughout). */
-export function buildAuditEmailHtml(a: AuditRecord, resultsUrl: string): string {
+export function buildAuditEmailHtml(a: AuditRecord, resultsUrl: string, pageCids: string[] = []): string {
   const color = scoreColor(a.overallScore);
   const cats = a.categories
     .map(
@@ -138,8 +138,11 @@ export function buildAuditEmailHtml(a: AuditRecord, resultsUrl: string): string 
       <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">Category breakdown</div>${cats}
     </div>
     <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">This is how hiring software reads your resume</div>
-      <div style="font-size:13px;line-height:1.7;color:#0D2A4C;background:#F6F9FE;border:1px solid #E0E7F1;border-radius:8px;padding:16px;font-family:Georgia,serif">${renderAnnotatedResumeHtml(a.resumeText, a.findings)}</div>
+      ${pageCids.length
+        ? `<div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">Your resume, marked up</div>
+      ${pageCids.map((cid, i) => `<img src="cid:${cid}" alt="Page ${i + 1} of your resume, marked up" width="592" style="display:block;width:100%;max-width:592px;height:auto;border:1px solid #E0E7F1;border-radius:6px;margin:0 0 12px">`).join("")}`
+        : `<div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">How a company's ATS reads your resume</div>
+      <div style="font-size:13px;line-height:1.7;color:#0D2A4C;background:#F6F9FE;border:1px solid #E0E7F1;border-radius:8px;padding:16px;font-family:Georgia,serif">${renderAnnotatedResumeHtml(a.resumeText, a.findings)}</div>`}
       <div style="font-size:12px;color:#526379;margin-top:8px"><span style="display:inline-block;width:12px;height:12px;background:#D93B30;border-radius:3px;vertical-align:middle"></span> critical &nbsp;<span style="display:inline-block;width:12px;height:12px;background:#FFE27A;border-radius:3px;vertical-align:middle"></span> warning. Numbered to match the notes below.</div>
     </div>
     <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:20px">

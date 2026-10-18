@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { loadResumeFile } from "@/lib/resumeFile";
 import { buildStream, locateQuote, type TextPiece } from "@/lib/highlight";
+import { setMarkedPages } from "@/lib/markedPages";
 
 interface Finding {
   severity: "critical" | "warning";
@@ -24,6 +25,7 @@ interface Page {
   src: string;
   ratio: number; // height / width
   boxes: Box[];
+  flat: string; // JPEG with marks drawn on, for the email
 }
 
 type Status = "loading" | "ready" | "nofile" | "docx" | "error";
@@ -31,6 +33,46 @@ type Status = "loading" | "ready" | "nofile" | "docx" | "error";
 interface PdfItem extends TextPiece {
   transform: number[];
   width: number;
+}
+
+/** Draw the marks and numbered badges onto a copy of the page, for email. */
+function flatten(canvas: HTMLCanvasElement, boxes: Box[]): string {
+  const out = document.createElement("canvas");
+  const scale = Math.min(1, 1100 / canvas.width);
+  out.width = Math.round(canvas.width * scale);
+  out.height = Math.round(canvas.height * scale);
+  const ctx = out.getContext("2d");
+  if (!ctx) return "";
+  ctx.drawImage(canvas, 0, 0, out.width, out.height);
+  const W = out.width, H = out.height;
+  const placed: { x: number; y: number }[] = [];
+  for (const b of boxes) {
+    const x = (b.left / 100) * W, y = (b.top / 100) * H, w = (b.width / 100) * W, h = (b.height / 100) * H;
+    const crit = b.severity === "critical";
+    ctx.fillStyle = crit ? "rgba(217,59,48,.16)" : "rgba(255,214,64,.38)";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = crit ? "#D93B30" : "#E8A317";
+    ctx.fillRect(x, y + h - 3, w, 3);
+  }
+  for (const b of boxes) {
+    if (!b.badge) continue;
+    const y = ((b.top + b.height / 2) / 100) * H;
+    let x = b.midLine ? 0.95 * W : (b.left / 100) * W - 20;
+    while (placed.some((p) => Math.abs(p.y - y) < 22 && Math.abs(p.x - x) < 36)) x -= 38;
+    placed.push({ x, y });
+    const label = String(b.n);
+    ctx.font = "800 19px Arial, sans-serif";
+    const r = Math.max(15, ctx.measureText(label).width / 2 + 7);
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = b.severity === "critical" ? "#D93B30" : "#B97F0A";
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x, y + 0.5);
+  }
+  return out.toDataURL("image/jpeg", 0.82);
 }
 
 async function renderPdf(bytes: ArrayBuffer, findings: Finding[]): Promise<Page[]> {
@@ -129,7 +171,7 @@ async function renderPdf(bytes: ArrayBuffer, findings: Finding[]): Promise<Page[
         });
     });
 
-    pages.push({ src: canvas.toDataURL("image/png"), ratio: base.height / base.width, boxes });
+    pages.push({ src: canvas.toDataURL("image/png"), ratio: base.height / base.width, boxes, flat: flatten(canvas, boxes) });
   }
   return pages;
 }
@@ -168,6 +210,7 @@ export default function ResumeMarkup({
         const rendered = await renderPdf(file.bytes, findings);
         if (cancelled) return;
         setPages(rendered);
+        setMarkedPages(auditId, rendered.map((p) => p.flat).filter(Boolean).slice(0, 3));
         setStatus("ready");
       } catch (e) {
         console.error("[markup] render failed", e);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAudit, saveAudit, saveLead, type AuditRecord } from "@/lib/store";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, type EmailAttachment } from "@/lib/email";
 import { buildAuditEmailHtml, buildFullFindingsHtml, escapeHtml } from "@/lib/report";
 
 
@@ -13,11 +13,20 @@ const LEAD_NOTIFY_EMAIL = process.env.LEAD_NOTIFY_EMAIL || "jon@rolerewritten.co
  */
 export async function POST(req: NextRequest) {
   try {
-    const { auditId, email, audit: bodyAudit } = (await req.json()) as {
+    const { auditId, email, audit: bodyAudit, pages } = (await req.json()) as {
       auditId?: string;
       email?: string;
       audit?: AuditRecord;
+      pages?: unknown;
     };
+    // Marked-up page images drawn in the visitor's browser (JPEG data URLs).
+    const attachments: EmailAttachment[] = (Array.isArray(pages) ? pages : [])
+      .filter((p): p is string => typeof p === "string" && p.startsWith("data:image/jpeg;base64,"))
+      .slice(0, 3)
+      .map((p) => p.slice("data:image/jpeg;base64,".length))
+      .filter((b64) => b64.length < 2_500_000 && /^[A-Za-z0-9+/=]+$/.test(b64))
+      .map((b64, i) => ({ filename: `resume-page-${i + 1}.jpg`, content: b64, content_id: `page${i + 1}` }));
+    const pageCids = attachments.map((a) => a.content_id as string);
     if (!auditId || !email || !EMAIL_RE.test(email.trim())) {
       return NextResponse.json(
         { error: "Please enter a valid email address." },
@@ -57,7 +66,8 @@ export async function POST(req: NextRequest) {
     const sent = await sendEmail({
       to: clean,
       subject: `Your resume scored ${audit.overallScore}/100: here's the full breakdown`,
-      html: buildAuditEmailHtml({ ...audit, email: clean }, resultsUrl),
+      html: buildAuditEmailHtml({ ...audit, email: clean }, resultsUrl, pageCids),
+      attachments,
     });
 
     // Notify Jon about the new lead (never attach the resume).

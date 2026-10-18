@@ -1,12 +1,19 @@
 import { appendOutbox } from "./store";
 
-const RESEND_URL = "https://api.resend.com/emails";
+const RESEND_URL = process.env.RESEND_API_URL || "https://api.resend.com/emails";
 const FROM = process.env.EMAIL_FROM || "Role Rewritten <jon@rolerewritten.com>";
+
+export interface EmailAttachment {
+  filename: string;
+  content: string; // base64
+  content_id?: string; // set to embed inline as <img src="cid:...">
+}
 
 export interface OutgoingEmail {
   to: string;
   subject: string;
   html: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -21,7 +28,7 @@ export async function sendEmail(mail: OutgoingEmail): Promise<{
 }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
-    appendOutbox(mail);
+    appendOutbox({ to: mail.to, subject: mail.subject, html: mail.html });
     console.log(
       `[email-stub] RESEND_API_KEY unset — saved to data/outbox.json (to=${mail.to}, subject="${mail.subject}")`
     );
@@ -38,6 +45,7 @@ export async function sendEmail(mail: OutgoingEmail): Promise<{
       to: [mail.to],
       subject: mail.subject,
       html: mail.html,
+      ...(mail.attachments?.length ? { attachments: mail.attachments } : {}),
     }),
   });
   if (!res.ok) {
