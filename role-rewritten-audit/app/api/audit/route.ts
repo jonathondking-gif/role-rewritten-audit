@@ -30,19 +30,6 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const recruitingFirm = String(form.get("recruitingFirm") || "").trim();
-    // Conflict guard (also enforced client-side): never process a resume
-    // when the uploader names a conflicted firm. No parsing, no AI call,
-    // nothing stored.
-    if (/escalon/i.test(recruitingFirm)) {
-      return NextResponse.json(
-        {
-          error:
-            "Thanks for your interest. Because of a conflict of interest, I'm not able to review this resume.",
-        },
-        { status: 400 }
-      );
-    }
     let text: string;
     try {
       text = await parseResume(buffer, name);
@@ -103,7 +90,6 @@ export async function POST(req: NextRequest) {
       strengths: result.strengths ?? [],
       topWeakSpots: weakSpots,
       unlocked: false,
-      recruitingFirm: recruitingFirm || undefined,
     };
     saveAudit(record);
 
@@ -126,7 +112,6 @@ export async function POST(req: NextRequest) {
       ),
       file_name: record.fileName,
       resume_text: record.resumeText,
-      recruiting_firm: record.recruitingFirm || "",
     });
   } catch (e) {
     console.error("[audit] error:", e);

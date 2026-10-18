@@ -3,9 +3,6 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const DECLINE_MSG =
-  "Thanks for your interest. Because of a conflict of interest, I'm not able to review this resume.";
-
 export default function UploadForm() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -13,20 +10,9 @@ export default function UploadForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [worksWithFirm, setWorksWithFirm] = useState<"no" | "yes" | null>(null);
-  const [firmName, setFirmName] = useState("");
 
   async function submit(file: File) {
     setError(null);
-    if (worksWithFirm === null) {
-      setError("Please answer the question below before uploading.");
-      return;
-    }
-    if (worksWithFirm === "yes" && /escalon/i.test(firmName)) {
-      // Conflict guard: no upload, no API call, nothing stored.
-      setError(DECLINE_MSG);
-      return;
-    }
     if (!/\.(pdf|docx)$/i.test(file.name)) {
       setError("Please upload a PDF or DOCX resume.");
       return;
@@ -40,10 +26,6 @@ export default function UploadForm() {
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append(
-        "recruitingFirm",
-        worksWithFirm === "yes" ? firmName.trim() : ""
-      );
       const res = await fetch("/api/audit", { method: "POST", body: form });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Audit failed.");
@@ -115,44 +97,6 @@ export default function UploadForm() {
             </p>
           </div>
         )}
-      </div>
-
-      <div className="mt-4 rounded-2xl border border-[#E0E7F1] bg-white p-5">
-        <p className="font-semibold text-[#0D2A4C]">
-          Are you working with a recruiting firm on a search right now? If yes,
-          which one?
-        </p>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
-          <label className="flex cursor-pointer items-center gap-2 text-[#0D2A4C]">
-            <input
-              type="radio"
-              name="firm"
-              checked={worksWithFirm === "no"}
-              onChange={() => setWorksWithFirm("no")}
-              className="h-4 w-4 accent-[#1D6FE0]"
-            />
-            No
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 text-[#0D2A4C]">
-            <input
-              type="radio"
-              name="firm"
-              checked={worksWithFirm === "yes"}
-              onChange={() => setWorksWithFirm("yes")}
-              className="h-4 w-4 accent-[#1D6FE0]"
-            />
-            Yes
-          </label>
-          {worksWithFirm === "yes" && (
-            <input
-              type="text"
-              value={firmName}
-              onChange={(e) => setFirmName(e.target.value)}
-              placeholder="Firm name"
-              className="flex-1 rounded-xl border border-[#E0E7F1] px-4 py-2.5 text-[#0D2A4C] focus:border-[#1D6FE0] focus:outline-none"
-            />
-          )}
-        </div>
       </div>
 
       {error && (

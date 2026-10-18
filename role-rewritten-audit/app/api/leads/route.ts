@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
         strengths: Array.isArray(b.strengths) ? b.strengths : [],
         topWeakSpots: b.top_weak_spots ?? [],
         unlocked: false,
-        recruitingFirm: typeof b.recruiting_firm === "string" ? b.recruiting_firm : undefined,
       };
     }
     const audit = getAudit(auditId) ?? toRecord(bodyAudit, auditId);
@@ -76,7 +75,6 @@ export async function POST(req: NextRequest) {
             <table style="font-size:14px;color:#0D2A4C;border-collapse:collapse;width:100%">
               <tr><td style="padding:6px 0;color:#526379;width:160px">Email</td><td><strong>${escapeHtml(clean)}</strong></td></tr>
               <tr><td style="padding:6px 0;color:#526379">Score</td><td><strong>${audit.overallScore}/100</strong></td></tr>
-              <tr><td style="padding:6px 0;color:#526379">Recruiting firm</td><td><strong>${escapeHtml(audit.recruitingFirm || "No")}</strong></td></tr>
               <tr><td style="padding:6px 0;color:#526379">File</td><td>${escapeHtml(audit.fileName)}</td></tr>
             </table>
             <div style="font-size:14px;font-weight:700;color:#0D2A4C;margin:16px 0 8px">Top 3 weak spots</div>

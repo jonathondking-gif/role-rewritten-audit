@@ -52,7 +52,7 @@ export default function Home() {
         </div>
 
         <p className="mt-10 text-center text-xs text-[#526379]">
-          Built by a talent acquisition leader from Deloitte, PwC, IBM, and
+          Built by a recruiter who has hired for Deloitte, PwC, IBM, and
           Accenture. AI drafts. Humans decide.
         </p>
       </main>
