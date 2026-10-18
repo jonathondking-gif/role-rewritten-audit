@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAudit, saveAudit, saveLead, type AuditRecord } from "@/lib/store";
+import type { AuditRecord } from "@/lib/store";
+import { getAudit, saveAudit, saveLead } from "@/lib/db";
 import { sendEmail, type EmailAttachment } from "@/lib/email";
 import { buildAuditEmailHtml, buildFullFindingsHtml, escapeHtml } from "@/lib/report";
 
@@ -51,14 +52,14 @@ export async function POST(req: NextRequest) {
         unlocked: false,
       };
     }
-    const audit = getAudit(auditId) ?? toRecord(bodyAudit, auditId);
+    const audit = (await getAudit(auditId)) ?? toRecord(bodyAudit, auditId);
     if (!audit) {
       return NextResponse.json({ error: "Audit not found." }, { status: 404 });
     }
 
     const clean = email.trim().toLowerCase();
-    saveLead({ email: clean, auditId, createdAt: new Date().toISOString() });
-    saveAudit({ ...audit, email: clean, unlocked: true });
+    await saveLead({ email: clean, auditId, createdAt: new Date().toISOString(), score: audit.overallScore, fileName: audit.fileName });
+    await saveAudit({ ...audit, email: clean, unlocked: true });
 
     const base =
       process.env.SITE_URL || "https://audit.rolerewritten.com";

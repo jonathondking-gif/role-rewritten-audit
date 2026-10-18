@@ -1,10 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import { renderAnnotatedResumeHtml } from "@/lib/report";
 import { parseResume, looksLikeResume } from "@/lib/parse";
 import { callClaudeStructured, AUDIT_MODEL } from "@/lib/anthropic";
 import { AUDIT_SYSTEM, AUDIT_SCHEMA, buildAuditPrompt, type AuditResult } from "@/lib/prompts";
-import { saveAudit, uid, type AuditRecord } from "@/lib/store";
+import { uid, type AuditRecord } from "@/lib/store";
+import { saveAudit, fileHash, getAuditByHash, rememberHash } from "@/lib/db";
 
 export const maxDuration = 120;
+
+function payload(record: AuditRecord) {
+  return {
+    id: record.id,
+    overall_score: record.overallScore,
+    weak_spots_preview: record.topWeakSpots.slice(0, 3),
+    unlocked: false,
+    categories: record.categories,
+    findings: record.findings,
+    strengths: record.strengths,
+    top_weak_spots: record.topWeakSpots,
+    annotated_html: renderAnnotatedResumeHtml(record.resumeText, record.findings),
+    file_name: record.fileName,
+    resume_text: record.resumeText,
+  };
+}
 
 /**
  * The overall score is the category scores added up, so the headline number
@@ -45,6 +63,15 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    // Same file, same result: reuse the audit already produced for it.
+    const hash = fileHash(buffer);
+    const cached = await getAuditByHash(hash);
+    if (cached) {
+      const copy: AuditRecord = { ...cached, id: uid("aud"), createdAt: new Date().toISOString(), email: undefined, unlocked: false };
+      await saveAudit(copy);
+      return NextResponse.json(payload(copy));
+    }
+
     let text: string;
     try {
       text = await parseResume(buffer, name);
@@ -112,28 +139,11 @@ export async function POST(req: NextRequest) {
       topWeakSpots: weakSpots,
       unlocked: false,
     };
-    saveAudit(record);
+    await saveAudit(record);
+    await rememberHash(hash, id);
 
-    // Return the full audit payload so the client can render the report
-    // immediately without a second server round-trip. (Serverless
-    // instances don't share local disk, so re-fetching by id is unreliable.)
-    const { renderAnnotatedResumeHtml } = await import("@/lib/report");
-    return NextResponse.json({
-      id,
-      overall_score: record.overallScore,
-      weak_spots_preview: record.topWeakSpots.slice(0, 3),
-      unlocked: false,
-      categories: record.categories,
-      findings: record.findings,
-      strengths: record.strengths,
-      top_weak_spots: record.topWeakSpots,
-      annotated_html: renderAnnotatedResumeHtml(
-        record.resumeText,
-        record.findings
-      ),
-      file_name: record.fileName,
-      resume_text: record.resumeText,
-    });
+    // Return the full audit so the page can render right away.
+    return NextResponse.json(payload(record));
   } catch (e) {
     console.error("[audit] error:", e);
     return NextResponse.json(

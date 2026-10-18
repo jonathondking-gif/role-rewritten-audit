@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAudit } from "@/lib/store";
+import { getAudit } from "@/lib/db";
 import { renderAnnotatedResumeHtml } from "@/lib/report";
 
 
@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const audit = getAudit(id);
+  const audit = await getAudit(id);
   if (!audit) {
     return NextResponse.json({ error: "Audit not found." }, { status: 404 });
   }
@@ -27,6 +27,7 @@ export async function GET(
     ...base,
     categories: audit.categories,
     findings: audit.findings,
+    strengths: audit.strengths ?? [],
     top_weak_spots: audit.topWeakSpots,
     annotated_html: renderAnnotatedResumeHtml(audit.resumeText, audit.findings),
     file_name: audit.fileName,
