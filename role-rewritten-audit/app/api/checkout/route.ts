@@ -1,73 +1,68 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTier } from "@/lib/pricing";
-import { getAudit } from "@/lib/store";
+import { getAudit, saveAudit, saveLead, type AuditRecord } from "@/lib/store";
+import { sendEmail } from "@/lib/email";
+import { buildAuditEmailHtml } from "@/lib/report";
 
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Creates a Stripe Checkout Session via the Stripe API (no SDK — fetch only).
- * When STRIPE_SECRET_KEY is unset, returns { configured: false } so the UI
- * can show a "payments not configured" state instead of breaking.
+ * Email gate: visitor unlocks the full annotated report by leaving an email.
+ * Fires the instant visual audit email (or stubs it when Resend is unset).
  */
 export async function POST(req: NextRequest) {
   try {
-    const { auditId, tierId } = (await req.json()) as {
+    const { auditId, email, audit: bodyAudit } = (await req.json()) as {
       auditId?: string;
-      tierId?: string;
+      email?: string;
+      audit?: AuditRecord;
     };
-    const tier = tierId ? getTier(tierId) : undefined;
-    if (!auditId || !tier) {
+    if (!auditId || !email || !EMAIL_RE.test(email.trim())) {
       return NextResponse.json(
-        { error: "Pick a package to continue." },
+        { error: "Please enter a valid email address." },
         { status: 400 }
       );
     }
-    const audit = getAudit(auditId);
+    // The client may hand us the audit it already holds, since serverless
+    // instances don't share local disk. Normalize the API (snake_case)
+    // shape to the AuditRecord shape.
+    function toRecord(b: any, id: string): AuditRecord | null {
+      if (!b || b.id !== id) return null;
+      return {
+        id,
+        createdAt: new Date().toISOString(),
+        fileName: b.file_name || "resume",
+        resumeText: b.resume_text || "",
+        overallScore: b.overall_score ?? 0,
+        categories: b.categories ?? [],
+        findings: b.findings ?? [],
+        topWeakSpots: b.top_weak_spots ?? [],
+        unlocked: false,
+      };
+    }
+    const audit = getAudit(auditId) ?? toRecord(bodyAudit, auditId);
     if (!audit) {
       return NextResponse.json({ error: "Audit not found." }, { status: 404 });
     }
 
-    const secret = process.env.STRIPE_SECRET_KEY;
-    if (!secret) {
-      return NextResponse.json({
-        configured: false,
-        message:
-          "Online payments aren't connected yet. Email jon@rolerewritten.com to order your rebuild directly.",
-      });
-    }
+    const clean = email.trim().toLowerCase();
+    saveLead({ email: clean, auditId, createdAt: new Date().toISOString() });
+    saveAudit({ ...audit, email: clean, unlocked: true });
 
-    const base = process.env.SITE_URL || "https://audit.rolerewritten.com";
-    const params = new URLSearchParams({
-      "payment_method_types[]": "card",
-      mode: "payment",
-      "line_items[0][price_data][currency]": "usd",
-      "line_items[0][price_data][unit_amount]": String(tier.priceCents),
-      "line_items[0][price_data][product_data][name]": `Role Rewritten — ${tier.name}`,
-      "line_items[0][quantity]": "1",
-      success_url: `${base}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}/results/${auditId}`,
-      "metadata[audit_id]": auditId,
-      "metadata[tier]": tier.id,
-      "metadata[email]": audit.email || "",
+    const base =
+      process.env.SITE_URL || "https://audit.rolerewritten.com";
+    const resultsUrl = `${base}/results/${auditId}`;
+    const sent = await sendEmail({
+      to: clean,
+      subject: `Your resume scored ${audit.overallScore}/100 — here's the full breakdown`,
+      html: buildAuditEmailHtml({ ...audit, email: clean }, resultsUrl),
     });
 
-    const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(secret + ":").toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: params.toString(),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`Stripe error ${res.status}: ${body.slice(0, 200)}`);
-    }
-    const session = (await res.json()) as { url?: string; id?: string };
-    return NextResponse.json({ configured: true, url: session.url });
+    return NextResponse.json({ ok: true, emailSent: sent.sent });
   } catch (e) {
-    console.error("[checkout] error:", e);
+    console.error("[leads] error:", e);
     return NextResponse.json(
-      { error: "Checkout failed. Please try again or email jon@rolerewritten.com." },
+      { error: "Something went wrong. Please try again." },
       { status: 500 }
     );
   }
