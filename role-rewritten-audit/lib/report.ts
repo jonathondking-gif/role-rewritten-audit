@@ -99,9 +99,10 @@ export function buildAuditEmailHtml(a: AuditRecord, resultsUrl: string, pageCids
     .map(
       (c) => `
       <div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:#526379;margin-bottom:4px">
-          <span>${escapeHtml(c.name)}</span><span><strong style="color:#0D2A4C">${c.score}</strong>/${c.max}</span>
-        </div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;color:#526379;margin-bottom:4px"><tr>
+          <td align="left">${escapeHtml(c.name)}</td>
+          <td align="right" style="white-space:nowrap"><strong style="color:#0D2A4C">${c.score}</strong>/${c.max}</td>
+        </tr></table>
         <div style="background:#E0E7F1;border-radius:999px;height:8px">
           <div style="background:${color};border-radius:999px;height:8px;width:${Math.round(
             (c.score / c.max) * 100

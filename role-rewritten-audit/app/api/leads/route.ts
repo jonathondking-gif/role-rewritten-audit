@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const resultsUrl = `${base}/results/${auditId}`;
     const sent = await sendEmail({
       to: clean,
-      subject: `Your resume scored ${audit.overallScore}/100: here's the full breakdown`,
+      subject: `Your resume scored ${audit.overallScore}/100. Here's what's costing you interviews.`,
       html: buildAuditEmailHtml({ ...audit, email: clean }, resultsUrl, pageCids),
       attachments,
     });
