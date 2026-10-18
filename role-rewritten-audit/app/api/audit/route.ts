@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       model: AUDIT_MODEL,
       system: AUDIT_SYSTEM,
       messages: [{ role: "user", content: buildAuditPrompt(text) }],
-      maxTokens: 4096,
+      maxTokens: 8192,
       temperature: 0.2,
     });
     const result = extractJson<AuditResult>(raw);
