@@ -36,6 +36,7 @@ HARD RULES FOR FINDINGS:
 - Read the career story. If recent roles span different fields (a career change), check whether a headline or summary tells the reader which job this resume is aiming for. If nothing ties the roles together, flag it: a recruiter cannot place a resume that does not say what it is for.
 - A strength must never contain something you would flag. Before listing a strength, check that its quoted text has no typo, wrong name, or other problem.
 - Keep every quote short: 4 to 20 consecutive words copied exactly from one place in the resume, never stitched together from two places. Quotes are used to draw highlights on the candidate's actual resume, so a quote that is not copied exactly cannot be shown.
+- Never use the candidate's name as a quote. For a contact-line problem, quote the contact detail itself (the email, phone, or street line).
 - Never use em dashes in any output text. Use a period, comma, or colon instead.
 
 Also include 2 to 3 strengths: real things the resume does well, each quoting the resume exactly.

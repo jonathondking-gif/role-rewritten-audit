@@ -18,7 +18,36 @@ interface Box {
   width: number;
   height: number;
   badge: boolean;
-  midLine: boolean; // text sits just left of the mark, so the badge goes above it
+  midLine: boolean; // text sits just left of the mark, so the badge goes in the right margin
+  bx?: number; // badge center, percent of page width
+  by?: number; // badge center, percent of page height
+}
+
+/**
+ * Give every badge a spot that does not overlap another badge. Badges sit
+ * just left of their mark, or in the right margin when the mark starts
+ * mid-line. Crowded badges step further left.
+ */
+function placeBadges(boxes: Box[]) {
+  const placed: { x: number; y: number }[] = [];
+  const DX = 2.8; // percent of width between badge centers
+  const DY = 2.0; // percent of height between badge centers
+  const free = (x: number, y: number) => !placed.some((p) => Math.abs(p.y - y) < DY && Math.abs(p.x - x) < DX);
+  boxes
+    .filter((b) => b.badge)
+    .sort((a, b) => a.top - b.top)
+    .forEach((b) => {
+      const y = b.top + b.height / 2;
+      const home = b.midLine ? 95.5 : b.left - 1.9;
+      // Try the usual spot, then two steps left, then the right margin.
+      const tries = b.midLine
+        ? [home, home - DX, home - 2 * DX, home - 3 * DX]
+        : [home, home - DX, home - 2 * DX, 95.5, 95.5 - DX, 95.5 - 2 * DX];
+      const x = tries.find((t) => free(t, y)) ?? tries[tries.length - 1];
+      placed.push({ x, y });
+      b.bx = x;
+      b.by = y;
+    });
 }
 
 interface Page {
@@ -45,7 +74,6 @@ function flatten(canvas: HTMLCanvasElement, boxes: Box[]): string {
   if (!ctx) return "";
   ctx.drawImage(canvas, 0, 0, out.width, out.height);
   const W = out.width, H = out.height;
-  const placed: { x: number; y: number }[] = [];
   for (const b of boxes) {
     const x = (b.left / 100) * W, y = (b.top / 100) * H, w = (b.width / 100) * W, h = (b.height / 100) * H;
     const crit = b.severity === "critical";
@@ -56,10 +84,8 @@ function flatten(canvas: HTMLCanvasElement, boxes: Box[]): string {
   }
   for (const b of boxes) {
     if (!b.badge) continue;
-    const y = ((b.top + b.height / 2) / 100) * H;
-    let x = b.midLine ? 0.95 * W : (b.left / 100) * W - 20;
-    while (placed.some((p) => Math.abs(p.y - y) < 22 && Math.abs(p.x - x) < 36)) x -= 38;
-    placed.push({ x, y });
+    const y = ((b.by ?? b.top) / 100) * H;
+    const x = ((b.bx ?? b.left) / 100) * W;
     const label = String(b.n);
     ctx.font = "800 19px Arial, sans-serif";
     const r = Math.max(15, ctx.measureText(label).width / 2 + 7);
@@ -171,6 +197,7 @@ async function renderPdf(bytes: ArrayBuffer, findings: Finding[]): Promise<Page[
         });
     });
 
+    placeBadges(boxes);
     pages.push({ src: canvas.toDataURL("image/png"), ratio: base.height / base.width, boxes, flat: flatten(canvas, boxes) });
   }
   return pages;
@@ -309,41 +336,27 @@ export default function ResumeMarkup({
                       borderBottom: `2px solid ${b.severity === "critical" ? "#D93B30" : "#E8A317"}`,
                     }}
                   >
-                    {b.badge && !b.midLine && (
-                      <button
-                        type="button"
-                        onClick={() => jump(b.n)}
-                        aria-label={`Note ${b.n}`}
-                        className={`absolute flex h-3.5 min-w-3.5 items-center right-full top-1/2 mr-0.5 -translate-y-1/2 sm:mr-1 justify-center rounded-full px-0.5 text-[8px] sm:h-5 sm:min-w-5 sm:px-1 sm:text-[11px] font-extrabold leading-none text-white shadow`}
-                        style={{ background: b.severity === "critical" ? "#D93B30" : "#B97F0A" }}
-                      >
-                        {b.n}
-                      </button>
-                    )}
                   </div>
                 ))}
                 {pg.boxes
-                  .filter((b) => b.badge && b.midLine)
-                  .map((b, idx, arr) => {
-                    const crowd = arr.slice(0, idx).filter((o) => Math.abs(o.top - b.top) < 2.5).length;
-                    return (
+                  .filter((b) => b.badge)
+                  .map((b) => (
                     <button
-                      key={`m${b.n}`}
+                      key={`b${b.n}`}
                       type="button"
                       onClick={() => jump(b.n)}
                       aria-label={`Note ${b.n}`}
-                      className="absolute flex h-3.5 min-w-3.5 -translate-x-1/2 items-center justify-center rounded-full px-0.5 text-[8px] font-extrabold leading-none text-white shadow sm:h-5 sm:min-w-5 sm:px-1 sm:text-[11px]"
+                      className="absolute flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5 text-[8px] font-extrabold leading-none text-white shadow sm:h-5 sm:min-w-5 sm:px-1 sm:text-[11px]"
                       style={{
-                        left: `${95.5 - crowd * 3.6}%`,
-                        top: `${b.top + b.height / 2}%`,
+                        left: `${b.bx ?? b.left}%`,
+                        top: `${b.by ?? b.top}%`,
                         transform: "translate(-50%, -50%)",
                         background: b.severity === "critical" ? "#D93B30" : "#B97F0A",
                       }}
                     >
                       {b.n}
                     </button>
-                    );
-                  })}
+                  ))}
               </div>
             ))}
             {locked && marked > 0 && (
