@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { saveResumeFile } from "@/lib/resumeFile";
 
 export default function UploadForm() {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function UploadForm() {
       } catch {
         /* storage unavailable — results page will try the API */
       }
+      await saveResumeFile(json.id, file);
       router.push(`/results/${json.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -93,7 +95,7 @@ export default function UploadForm() {
               Drop your resume here, or click to upload
             </p>
             <p className="mt-1 text-sm text-[#526379]">
-              PDF or DOCX · under 5MB · free · no account needed
+              PDF recommended · DOCX also accepted · under 5MB · free · no account needed
             </p>
           </div>
         )}

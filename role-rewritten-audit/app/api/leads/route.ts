@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAudit, saveAudit, saveLead, type AuditRecord } from "@/lib/store";
 import { sendEmail } from "@/lib/email";
-import { buildAuditEmailHtml, escapeHtml } from "@/lib/report";
+import { buildAuditEmailHtml, buildFullFindingsHtml, escapeHtml } from "@/lib/report";
 
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -79,6 +79,8 @@ export async function POST(req: NextRequest) {
             </table>
             <div style="font-size:14px;font-weight:700;color:#0D2A4C;margin:16px 0 8px">Top 3 weak spots</div>
             <ul style="font-size:14px;color:#0D2A4C;padding-left:20px;margin:0">${weak3}</ul>
+            <div style="font-size:14px;font-weight:700;color:#0D2A4C;margin:20px 0 8px">Full audit (they saw the first 3 only)</div>
+            ${buildFullFindingsHtml(audit.findings ?? [])}
             <div style="margin-top:16px"><a href="${escapeHtml(resultsUrl)}" style="color:#1D6FE0;font-weight:700">View their results</a></div>
           </div>
         </div></body></html>`,

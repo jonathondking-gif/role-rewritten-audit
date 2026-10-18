@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ScoreDial from "./ScoreDial";
+import ResumeMarkup from "./ResumeMarkup";
 
 interface Category {
   name: string;
@@ -14,6 +15,7 @@ interface Finding {
   severity: "critical" | "warning";
   quote: string;
   note: string;
+  fix?: string;
 }
 interface AuditData {
   id: string;
@@ -195,6 +197,17 @@ export default function ResultsView() {
         </div>
       </div>
 
+      {!data.unlocked && (
+        <div className="mt-8">
+          <ResumeMarkup
+            auditId={id}
+            findings={data.findings ?? []}
+            annotatedHtml={data.annotated_html ?? ""}
+            locked
+          />
+        </div>
+      )}
+
       {!data.unlocked ? (
         /* Email gate */
         <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-[#E0E7F1] bg-white p-8 text-center shadow-sm">
@@ -250,20 +263,12 @@ export default function ResultsView() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-[#E0E7F1] bg-white p-6 shadow-sm">
-            <h2 className="mb-1 text-lg font-bold text-[#0D2A4C]">This is how hiring software reads your resume</h2>
-            <p className="mb-4 text-sm text-[#526379]">
-              <span className="mr-3 inline-flex items-center gap-1">
-                <span className="inline-block h-3 w-3 rounded bg-[#D93B30]" /> critical
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="inline-block h-3 w-3 rounded bg-[#FFE27A]" /> warning
-              </span>
-              <span className="ml-2">Numbers match the notes below.</span>
-            </p>
-            <div
-              className="rounded-lg border border-[#E0E7F1] bg-[#F6F9FE] p-5 font-serif text-[15px] leading-7 text-[#0D2A4C]"
-              dangerouslySetInnerHTML={{ __html: data.annotated_html ?? "" }}
+          <div className="mt-6">
+            <ResumeMarkup
+              auditId={id}
+              findings={data.findings ?? []}
+              annotatedHtml={data.annotated_html ?? ""}
+              locked={false}
             />
           </div>
 
@@ -285,12 +290,13 @@ export default function ResultsView() {
           )}
 
           <div className="mt-6 rounded-2xl border border-[#E0E7F1] bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-bold text-[#0D2A4C]">What to fix, in order of damage</h2>
+            <h2 className="mb-4 text-lg font-bold text-[#0D2A4C]">The {Math.min(3, (data.findings ?? []).length)} problems costing you the most</h2>
             <div className="space-y-3">
-              {(data.findings ?? []).map((f, i) => (
+              {(data.findings ?? []).slice(0, 3).map((f, i) => (
                 <div
                   key={i}
-                  className={`rounded-r-lg border-l-4 bg-white p-4 shadow-sm ${
+                  id={`finding-${i + 1}`}
+                  className={`scroll-mt-24 rounded-r-lg border-l-4 bg-white p-4 shadow-sm ${
                     f.severity === "critical" ? "border-[#D93B30]" : "border-[#E8A317]"
                   }`}
                 >
@@ -303,9 +309,31 @@ export default function ResultsView() {
                   </p>
                   <p className="mb-2 text-sm italic text-[#526379]">“{f.quote}”</p>
                   <p className="text-[15px] leading-relaxed text-[#0D2A4C]">{f.note}</p>
+                  {i === 0 && f.fix ? (
+                    <p className="mt-3 rounded-lg bg-[#EAF3FF] px-4 py-3 text-[15px] leading-relaxed text-[#0D2A4C]">
+                      <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-[#1557B8]">
+                        How I would fix it (free sample)
+                      </span>
+                      {f.fix}
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-sm font-semibold text-[#1557B8]">
+                      My rewrite of this line is included in your rebuild.
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
+            {(data.findings ?? []).length > 3 && (
+              <div className="mt-4 rounded-xl border-2 border-dashed border-[#1D6FE0] bg-[#EAF3FF] p-5 text-center">
+                <p className="text-lg font-bold text-[#0D2A4C]">
+                  {(data.findings ?? []).length - 3} more {(data.findings ?? []).length - 3 === 1 ? "problem is" : "problems are"} marked on your resume
+                </p>
+                <p className="mt-1 text-[15px] text-[#526379]">
+                  Your full audit, with every problem explained and every line rewritten, comes with any package below.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Buy CTA */}

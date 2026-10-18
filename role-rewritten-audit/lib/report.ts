@@ -78,13 +78,17 @@ export function scoreColor(score: number): string {
 }
 
 function findingItem(f: AuditFinding, i: number): string {
+  const fixHtml =
+    i === 0 && f.fix
+      ? `<div style="margin-top:10px;background:#EAF3FF;border-radius:8px;padding:10px 12px;font-size:14px;color:#0D2A4C;line-height:1.5"><div style="font-size:11px;font-weight:700;color:#1557B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">How I would fix it (free sample)</div>${escapeHtml(f.fix)}</div>`
+      : `<div style="margin-top:8px;font-size:13px;font-weight:700;color:#1557B8">My rewrite of this line is included in your rebuild.</div>`;
   const color = f.severity === "critical" ? "#D93B30" : "#E8A317";
   const label = f.severity === "critical" ? "Critical" : "Warning";
   return `
     <div style="border-left:4px solid ${color};padding:12px 16px;margin:0 0 12px;background:#fff;border-radius:0 8px 8px 0;box-shadow:0 1px 3px rgba(0,0,0,.08)">
       <div style="font-size:12px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${i + 1}. ${label}: ${escapeHtml(f.section)}</div>
       <div style="font-size:13px;color:#526379;font-style:italic;margin-bottom:6px">“${escapeHtml(f.quote)}”</div>
-      <div style="font-size:14px;color:#0D2A4C;line-height:1.5">${escapeHtml(f.note)}</div>
+      <div style="font-size:14px;color:#0D2A4C;line-height:1.5">${escapeHtml(f.note)}</div>${fixHtml}
     </div>`;
 }
 
@@ -107,7 +111,12 @@ export function buildAuditEmailHtml(a: AuditRecord, resultsUrl: string): string 
     )
     .join("");
 
-  const findings = a.findings.map(findingItem).join("");
+  const findings = a.findings.slice(0, 3).map(findingItem).join("");
+  const extra = a.findings.length - 3;
+  const moreHtml =
+    extra > 0
+      ? `<div style="border:2px dashed #1D6FE0;background:#EAF3FF;border-radius:10px;padding:16px;text-align:center"><div style="font-size:16px;font-weight:700;color:#0D2A4C">${extra} more ${extra === 1 ? "problem is" : "problems are"} marked on your resume</div><div style="font-size:14px;color:#526379;margin-top:4px">Your full audit, with every problem explained and every line rewritten, comes with any package.</div></div>`
+      : "";
   const strengths = (a.strengths ?? [])
     .map(
       (s) => `
@@ -116,9 +125,6 @@ export function buildAuditEmailHtml(a: AuditRecord, resultsUrl: string): string 
         <div style="font-size:14px;color:#0D2A4C;line-height:1.5">${escapeHtml(s.note)}</div>
       </div>`
     )
-    .join("");
-  const weakSpots = a.topWeakSpots
-    .map((w) => `<li style="margin-bottom:6px">${escapeHtml(w)}</li>`)
     .join("");
 
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F6F9FE;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif">
@@ -140,17 +146,28 @@ export function buildAuditEmailHtml(a: AuditRecord, resultsUrl: string): string 
       <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">What's working</div>${strengths}
     </div>
     <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">What to fix, in order</div>${findings}
-    </div>
-    <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">Biggest weak spots</div>
-      <ul style="font-size:14px;color:#0D2A4C;padding-left:20px;margin:0">${weakSpots}</ul>
+      <div style="font-size:16px;font-weight:700;color:#0D2A4C;margin-bottom:12px">The problems costing you the most</div>${findings}${moreHtml}
     </div>
     <div style="background:#0D2A4C;border-radius:12px;padding:28px;text-align:center">
-      <div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:8px">Want this rebuilt properly?</div>
+      <div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:8px">Want every line fixed?</div>
       <div style="color:#9DB2CC;font-size:14px;margin-bottom:16px">AI drafts it. A recruiter with 15+ years of hiring experience reviews every line before it reaches you.</div>
       <a href="${escapeHtml(resultsUrl)}" style="display:inline-block;background:#1D6FE0;color:#fff;font-weight:700;font-size:16px;padding:14px 32px;border-radius:12px;text-decoration:none">Get my resume rebuilt, from $179</a>
     </div>
     <div style="text-align:center;font-size:12px;color:#526379;margin-top:16px">Role Rewritten. Written by a recruiter. Built to get past one.</div>
   </div></body></html>`;
+}
+
+/** Every finding with its fix, for Jon's lead alert. Not shown to visitors. */
+export function buildFullFindingsHtml(findings: AuditFinding[]): string {
+  return findings
+    .map((f, i) => {
+      const color = f.severity === "critical" ? "#D93B30" : "#E8A317";
+      return `<div style="border-left:4px solid ${color};padding:8px 12px;margin:0 0 10px">
+        <div style="font-size:12px;font-weight:700;color:${color};text-transform:uppercase">${i + 1}. ${escapeHtml(f.severity)}: ${escapeHtml(f.section)}</div>
+        <div style="font-size:13px;color:#526379;font-style:italic">"${escapeHtml(f.quote)}"</div>
+        <div style="font-size:14px;color:#0D2A4C">${escapeHtml(f.note)}</div>
+        ${f.fix ? `<div style="font-size:14px;color:#1557B8;margin-top:4px"><strong>Fix:</strong> ${escapeHtml(f.fix)}</div>` : ""}
+      </div>`;
+    })
+    .join("");
 }

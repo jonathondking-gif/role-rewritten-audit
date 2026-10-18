@@ -45,6 +45,7 @@ export interface AuditFinding {
   severity: "critical" | "warning";
   quote: string;
   note: string;
+  fix?: string;
 }
 
 export interface AuditStrength {
