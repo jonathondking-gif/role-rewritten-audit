@@ -66,6 +66,17 @@ export default function ResultsView() {
 
   async function load() {
     try {
+      // Prefer the audit the upload page stashed in session storage —
+      // serverless instances don't share local disk, so the API lookup
+      // by id is unreliable.
+      const cached =
+        typeof sessionStorage !== "undefined"
+          ? sessionStorage.getItem(`audit:${id}`)
+          : null;
+      if (cached) {
+        setData(JSON.parse(cached));
+        return;
+      }
       const res = await fetch(`/api/audit/${id}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Could not load audit.");
@@ -85,14 +96,25 @@ export default function ResultsView() {
     setUnlocking(true);
     setError(null);
     try {
+      // Hand the server the audit we already hold, in case it runs on a
+      // fresh instance without it on disk.
+      const cached =
+        typeof sessionStorage !== "undefined"
+          ? sessionStorage.getItem(`audit:${id}`)
+          : null;
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ auditId: id, email }),
+        body: JSON.stringify({
+          auditId: id,
+          email,
+          audit: cached ? JSON.parse(cached) : undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Unlock failed.");
-      await load();
+      // Unlock locally — no need to re-fetch from the server.
+      setData((d) => (d ? { ...d, unlocked: true } : d));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unlock failed.");
     } finally {
