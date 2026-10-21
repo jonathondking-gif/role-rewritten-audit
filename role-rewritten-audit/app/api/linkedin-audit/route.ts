@@ -10,6 +10,7 @@ import {
   buildLinkedInPrompt,
   looksLikeLinkedInExport,
 } from "@/lib/linkedinPrompts";
+import { addRuleFindings } from "@/lib/linkedinChecks";
 import { uid, type AuditCategory, type AuditRecord } from "@/lib/store";
 import { saveAudit, linkedinHash, getAuditByHash, rememberHash } from "@/lib/db";
 
@@ -154,7 +155,10 @@ export async function POST(req: NextRequest) {
     }
     if (!result) throw lastErr ?? new Error("Model did not return an audit.");
 
-    const findings = (result.findings ?? []).map((f) => ({ ...f, quote: (f.quote ?? "").trim() }));
+    const findings = addRuleFindings(
+      (result.findings ?? []).map((f) => ({ ...f, quote: (f.quote ?? "").trim() })),
+      text
+    );
     let weakSpots = result.top_weak_spots ?? [];
     if (!weakSpots.length && findings.length) {
       weakSpots = findings.slice(0, 6).map((f) => {
