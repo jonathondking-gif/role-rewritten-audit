@@ -1,0 +1,7 @@
+# Build output and local files
+node_modules/
+.next/
+*.tsbuildinfo
+data/
+.env*.local
+.vercel/
