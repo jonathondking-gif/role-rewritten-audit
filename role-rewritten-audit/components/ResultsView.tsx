@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ScoreDial from "./ScoreDial";
@@ -20,6 +21,8 @@ interface Finding {
 }
 interface AuditData {
   id: string;
+  kind?: "resume" | "linkedin";
+  target_role?: string;
   overall_score: number;
   weak_spots_preview: string[];
   unlocked: boolean;
@@ -56,6 +59,13 @@ const TIERS = [
   },
 ];
 
+function linkedinVerdict(score: number): string {
+  if (score >= 80) return "Your profile is in good shape. Recruiters can find you.";
+  if (score >= 75) return "Strong. A few changes and recruiters find you faster.";
+  if (score >= 50) return "Solid foundation, with gaps that keep you out of recruiter searches.";
+  return "This profile is costing you recruiter messages. Here's exactly why.";
+}
+
 function verdict(score: number): string {
   if (score >= 80)
     return "Your resume is in good shape. You may not need a full rewrite.";
@@ -65,7 +75,7 @@ function verdict(score: number): string {
   return "This resume is costing you interviews. Here's exactly why.";
 }
 
-export default function ResultsView() {
+export default function ResultsView({ kind: kindProp }: { kind?: "resume" | "linkedin" } = {}) {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const [data, setData] = useState<AuditData | null>(null);
@@ -168,17 +178,35 @@ export default function ResultsView() {
     );
   }
 
+  const li = (data.kind ?? kindProp) === "linkedin";
+  const thing = li ? "profile" : "resume";
+  // LinkedIn visitors see only the packages that include LinkedIn.
+  const tiers = li
+    ? TIERS.filter((t) => t.id !== "resume").map((t) =>
+        t.id === "resume_linkedin"
+          ? {
+              ...t,
+              blurb:
+                "Your LinkedIn headline, About section, and experience entries rewritten, plus a full resume rewrite to match and recruiter outreach email templates. Most popular.",
+            }
+          : t
+      )
+    : TIERS;
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       {/* Score hero — free */}
       <div className="rounded-2xl bg-[#0D2A4C] p-8 text-center text-white">
         <p className="text-xs font-semibold uppercase tracking-widest text-[#9DB2CC]">
-          Your resume audit
+          {li ? "Your LinkedIn audit" : "Your resume audit"}
         </p>
+        {li && data.target_role && (
+          <p className="mt-1 text-sm text-[#9DB2CC]">Checked against: {data.target_role}</p>
+        )}
         <div className="mx-auto my-4 w-fit rounded-full bg-white p-2">
           <ScoreDial score={data.overall_score} />
         </div>
-        <p className="mx-auto max-w-xl text-lg font-medium">{verdict(data.overall_score)}</p>
+        <p className="mx-auto max-w-xl text-lg font-medium">{li ? linkedinVerdict(data.overall_score) : verdict(data.overall_score)}</p>
         <div className="mx-auto mt-6 max-w-xl rounded-xl bg-[#EAF3FF] p-5 text-left">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#0D2A4C]">
             Preview of weak spots
@@ -187,7 +215,7 @@ export default function ResultsView() {
             {data.weak_spots_preview.map((w, i) => (
               <li key={i}>{w}</li>
             ))}
-            <li className="text-[#526379]">…and more marked on your resume.</li>
+            <li className="text-[#526379]">…and more marked on your {thing}.</li>
           </ul>
         </div>
       </div>
@@ -199,6 +227,7 @@ export default function ResultsView() {
             findings={data.findings ?? []}
             annotatedHtml={data.annotated_html ?? ""}
             locked
+            kind={li ? "linkedin" : "resume"}
           />
         </div>
       )}
@@ -209,7 +238,7 @@ export default function ResultsView() {
           <h2 className="text-xl font-bold text-[#0D2A4C]">See what your top 3 problems cost you</h2>
           <p className="mt-2 text-sm text-[#526379]">
             Your 3 most damaging problems explained, plus a free sample fix for #1.
-            I&apos;ll email you a copy with your marked-up resume.
+            I&apos;ll email you a copy with your marked-up {thing}.
           </p>
           <form onSubmit={unlock} className="mt-5 flex flex-col gap-3 sm:flex-row">
             <input
@@ -264,6 +293,7 @@ export default function ResultsView() {
               findings={data.findings ?? []}
               annotatedHtml={data.annotated_html ?? ""}
               locked={false}
+              kind={li ? "linkedin" : "resume"}
             />
           </div>
 
@@ -302,9 +332,14 @@ export default function ResultsView() {
                   >
                     {i + 1}. {f.severity}: {f.section}
                   </p>
-                  <p className="mb-2 text-sm italic text-[#526379]">“{f.quote}”</p>
+                  {f.quote && <p className="mb-2 text-sm italic text-[#526379]">“{f.quote}”</p>}
                   <p className="text-[15px] leading-relaxed text-[#0D2A4C]">{f.note}</p>
-                  {i === 0 && f.fix ? (
+                  {!f.quote && f.fix && i !== 0 ? (
+                    <p className="mt-3 text-[15px] leading-relaxed text-[#0D2A4C]">
+                      <span className="mr-1 font-bold text-[#1557B8]">What to do:</span>
+                      {f.fix}
+                    </p>
+                  ) : i === 0 && f.fix ? (
                     <p className="mt-3 rounded-lg bg-[#EAF3FF] px-4 py-3 text-[15px] leading-relaxed text-[#0D2A4C]">
                       <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-[#1557B8]">
                         How I would fix it (free sample)
@@ -322,17 +357,31 @@ export default function ResultsView() {
             {(data.findings ?? []).length > 3 && (
               <div className="mt-4 rounded-xl border-2 border-dashed border-[#1D6FE0] bg-[#EAF3FF] p-5 text-center">
                 <p className="text-lg font-bold text-[#0D2A4C]">
-                  {(data.findings ?? []).length - 3} more {(data.findings ?? []).length - 3 === 1 ? "problem is" : "problems are"} marked on your resume
+                  {(data.findings ?? []).length - 3} more {(data.findings ?? []).length - 3 === 1 ? "problem is" : "problems are"} marked on your {thing}
                 </p>
                 <p className="mt-1 text-[15px] text-[#526379]">
-                  Your full audit, with every problem explained and every line rewritten, comes with any package below.
+                  Your full audit, with every problem explained and every line rewritten, comes with {li ? "both packages below" : "any package below"}.
                 </p>
               </div>
             )}
           </div>
 
           {/* Buy CTA */}
-          {data.overall_score >= 80 ? (
+          {li && data.overall_score >= 80 ? (
+            <div className="mt-8 rounded-2xl bg-[#0D2A4C] p-8 text-center text-white">
+              <h2 className="text-2xl font-bold">Your profile is in good shape.</h2>
+              <p className="mx-auto mt-2 max-w-xl text-[#9DB2CC]">
+                You may not need a rewrite. Make sure your resume tells the same story: run it
+                through the free audit next.
+              </p>
+              <Link
+                href="/"
+                className="mt-6 inline-block rounded-xl bg-[#1D6FE0] px-6 py-3 font-bold text-white hover:bg-[#1557B8]"
+              >
+                Audit my resume free
+              </Link>
+            </div>
+          ) : data.overall_score >= 80 && !li ? (
             <div className="mt-8 rounded-2xl bg-[#0D2A4C] p-8 text-white">
               <h2 className="text-center text-2xl font-bold">
                 Want it tailored to a specific role?
@@ -364,14 +413,14 @@ export default function ResultsView() {
           ) : (
           <div className="mt-8 rounded-2xl bg-[#0D2A4C] p-8 text-white">
             <h2 className="text-center text-2xl font-bold">
-              Want this rebuilt properly?
+              {li ? "Want your profile rewritten?" : "Want this rebuilt properly?"}
             </h2>
             <p className="mx-auto mt-2 max-w-xl text-center text-[#9DB2CC]">
-              AI drafts it. A recruiter with 15+ years of hiring experience reviews every line before it reaches
+              {li && "I rewrite your headline, About section, and experience entries, and your resume to match. "}AI drafts it. A recruiter with 15+ years of hiring experience reviews every line before it reaches
               you. Delivered within 24 hours on business days.
             </p>
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {TIERS.map((t) => (
+            <div className={`mt-6 grid gap-4 ${li ? "mx-auto max-w-2xl md:grid-cols-2" : "md:grid-cols-3"}`}>
+              {tiers.map((t) => (
                 <div
                   key={t.id}
                   className="flex flex-col rounded-xl bg-[#14365E] p-5"

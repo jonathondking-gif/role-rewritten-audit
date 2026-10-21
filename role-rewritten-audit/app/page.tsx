@@ -1,3 +1,4 @@
+import Link from "next/link";
 import UploadForm from "@/components/UploadForm";
 import Logo from "@/components/Logo";
 
@@ -51,7 +52,13 @@ export default function Home() {
           ))}
         </div>
 
-        <p className="mt-10 text-center text-xs text-[#526379]">
+        <p className="mt-10 text-center text-sm text-[#526379]">
+          Want your LinkedIn checked too?{" "}
+          <Link href="/linkedin" className="font-bold text-[#1D6FE0] hover:underline">
+            Audit my LinkedIn free
+          </Link>
+        </p>
+        <p className="mt-4 text-center text-xs text-[#526379]">
           Built by a recruiter who has hired for Deloitte, PwC, IBM, and
           Accenture. AI drafts. Humans decide.
         </p>

@@ -208,12 +208,16 @@ export default function ResumeMarkup({
   findings,
   annotatedHtml,
   locked,
+  kind = "resume",
 }: {
   auditId: string;
   findings: Finding[];
   annotatedHtml: string;
   locked: boolean;
+  kind?: "resume" | "linkedin";
 }) {
+  const li = kind === "linkedin";
+  const thing = li ? "profile" : "resume";
   const [tab, setTab] = useState<"resume" | "ats">("resume");
   const [status, setStatus] = useState<Status>("loading");
   const [pages, setPages] = useState<Page[]>([]);
@@ -272,7 +276,7 @@ export default function ResumeMarkup({
               tab === "resume" ? "bg-[#0D2A4C] text-white" : "bg-[#EAF3FF] text-[#0D2A4C]"
             }`}
           >
-            Your resume, marked up
+            Your {thing}, marked up
           </button>
         )}
         <button
@@ -283,7 +287,7 @@ export default function ResumeMarkup({
             tab === "ats" ? "bg-[#0D2A4C] text-white" : "bg-[#EAF3FF] text-[#0D2A4C]"
           }`}
         >
-          How a company&apos;s ATS reads it
+          {li ? "Profile text" : <>How a company&apos;s ATS reads it</>}
         </button>
       </div>
 
@@ -294,7 +298,9 @@ export default function ResumeMarkup({
         <span className="mr-3 inline-flex items-center gap-1">
           <span className="inline-block h-3 w-3 rounded bg-[#FFE27A]" /> warning
         </span>
-        {tab === "ats"
+        {tab === "ats" && li
+          ? "This is the text from your LinkedIn PDF, with the same marks."
+          : tab === "ats"
           ? "Most companies run resumes through an Applicant Tracking System (ATS). This is the text it pulls from your file. Anything scrambled or missing here is scrambled or missing for the recruiter searching for you."
           : locked
           ? "Numbered by damage. #1 costs you the most."
@@ -311,7 +317,7 @@ export default function ResumeMarkup({
         status === "loading" ? (
           <div className="flex h-64 items-center justify-center text-[#526379]">
             <div className="mr-3 h-6 w-6 animate-spin rounded-full border-4 border-[#E0E7F1] border-t-[#1D6FE0]" />
-            Marking up your resume…
+            Marking up your {thing}…
           </div>
         ) : (
           <div className="-mx-2 space-y-4 rounded-lg bg-[#F6F9FE] p-1.5 sm:mx-0 sm:p-5">
@@ -322,7 +328,7 @@ export default function ResumeMarkup({
                 style={{ aspectRatio: `1 / ${pg.ratio}` }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pg.src} alt={`Page ${pi + 1} of your resume`} className="absolute inset-0 h-full w-full" />
+                <img src={pg.src} alt={`Page ${pi + 1} of your ${thing}`} className="absolute inset-0 h-full w-full" />
                 {pg.boxes.map((b, bi) => (
                   <div
                     key={bi}
@@ -361,7 +367,7 @@ export default function ResumeMarkup({
             ))}
             {locked && marked > 0 && (
               <p className="text-center text-sm font-semibold text-[#0D2A4C]">
-                {marked} {marked === 1 ? "problem" : "problems"} marked on your resume. Enter your email below to see what the top 3 cost you.
+                {marked} {marked === 1 ? "problem" : "problems"} marked on your {thing}. Enter your email below to see what the top 3 cost you.
               </p>
             )}
           </div>

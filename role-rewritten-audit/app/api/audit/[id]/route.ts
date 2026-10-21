@@ -18,6 +18,8 @@ export async function GET(
   }
   const base = {
     id: audit.id,
+    kind: audit.kind ?? "resume",
+    target_role: audit.targetRole ?? "",
     overall_score: audit.overallScore,
     weak_spots_preview: audit.topWeakSpots.slice(0, 3),
     unlocked: audit.unlocked,

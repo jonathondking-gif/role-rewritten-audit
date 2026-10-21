@@ -66,7 +66,13 @@ export interface AuditRecord {
   email?: string;
   unlocked: boolean;
   recruitingFirm?: string;
+  /** Which tool produced this audit. Missing means "resume" (older records). */
+  kind?: AuditKind;
+  /** LinkedIn audit only: the job title the visitor is aiming for. */
+  targetRole?: string;
 }
+
+export type AuditKind = "resume" | "linkedin";
 
 export interface Lead {
   email: string;

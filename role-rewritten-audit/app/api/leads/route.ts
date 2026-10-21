@@ -49,10 +49,13 @@ export async function POST(req: NextRequest) {
 
     const base =
       process.env.SITE_URL || "https://audit.rolerewritten.com";
-    const resultsUrl = `${base}/results/${auditId}`;
+    const resultsUrl = `${base}${audit.kind === "linkedin" ? "/linkedin" : ""}/results/${auditId}`;
+    const isLinkedIn = audit.kind === "linkedin";
     const sent = await sendEmail({
       to: clean,
-      subject: `Your resume scored ${audit.overallScore}/100. Here's what's costing you interviews.`,
+      subject: isLinkedIn
+        ? `Your LinkedIn profile scored ${audit.overallScore}/100. Here's what recruiters see.`
+        : `Your resume scored ${audit.overallScore}/100. Here's what's costing you interviews.`,
       html: buildAuditEmailHtml({ ...audit, email: clean }, resultsUrl, pageCids),
       attachments,
     });
@@ -64,15 +67,16 @@ export async function POST(req: NextRequest) {
       .join("");
     await sendEmail({
       to: LEAD_NOTIFY_EMAIL,
-      subject: `New audit lead: ${clean} scored ${audit.overallScore}/100`,
+      subject: `New ${isLinkedIn ? "LinkedIn " : ""}audit lead: ${clean} scored ${audit.overallScore}/100`,
       html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F6F9FE;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif">
         <div style="max-width:600px;margin:0 auto;padding:24px">
           <div style="background:#fff;border:1px solid #E0E7F1;border-radius:12px;padding:24px">
-            <div style="font-size:18px;font-weight:800;color:#0D2A4C;margin-bottom:16px">New resume audit lead</div>
+            <div style="font-size:18px;font-weight:800;color:#0D2A4C;margin-bottom:16px">New ${isLinkedIn ? "LinkedIn profile" : "resume"} audit lead</div>
             <table style="font-size:14px;color:#0D2A4C;border-collapse:collapse;width:100%">
               <tr><td style="padding:6px 0;color:#526379;width:160px">Email</td><td><strong>${escapeHtml(clean)}</strong></td></tr>
               <tr><td style="padding:6px 0;color:#526379">Score</td><td><strong>${audit.overallScore}/100</strong></td></tr>
               <tr><td style="padding:6px 0;color:#526379">File</td><td>${escapeHtml(audit.fileName)}</td></tr>
+              ${isLinkedIn ? `<tr><td style="padding:6px 0;color:#526379">Target role</td><td>${escapeHtml(audit.targetRole ?? "")}</td></tr>` : ""}
             </table>
             <div style="font-size:14px;font-weight:700;color:#0D2A4C;margin:16px 0 8px">Top 3 weak spots</div>
             <ul style="font-size:14px;color:#0D2A4C;padding-left:20px;margin:0">${weak3}</ul>

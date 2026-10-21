@@ -67,9 +67,27 @@ export async function getAudit(id: string): Promise<AuditRecord | null> {
   }
 }
 
+/** Bump this when the LinkedIn audit prompt changes. */
+export const LINKEDIN_AUDIT_VERSION = "2026-10-21a";
+
 /** Fingerprint of the uploaded file plus the audit version. */
 export function fileHash(buffer: Buffer): string {
   return crypto.createHash("sha256").update(buffer).update(AUDIT_VERSION).digest("hex");
+}
+
+/**
+ * Fingerprint for a LinkedIn audit: the file, the visitor's answers (target
+ * role, photo, banner), and the LinkedIn prompt version. Same file with a
+ * different target role is a different audit.
+ */
+export function linkedinHash(buffer: Buffer, answers: string): string {
+  return crypto
+    .createHash("sha256")
+    .update(buffer)
+    .update("linkedin")
+    .update(answers)
+    .update(LINKEDIN_AUDIT_VERSION)
+    .digest("hex");
 }
 
 /** The audit already produced for this exact file, if any. */
