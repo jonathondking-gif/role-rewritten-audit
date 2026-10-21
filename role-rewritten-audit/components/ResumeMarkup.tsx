@@ -19,6 +19,7 @@ interface Box {
   height: number;
   badge: boolean;
   midLine: boolean; // text sits just left of the mark, so the badge goes in the right margin
+  anchor?: number; // where the line starts (left of a bullet), percent of page width
   bx?: number; // badge center, percent of page width
   by?: number; // badge center, percent of page height
 }
@@ -38,7 +39,7 @@ function placeBadges(boxes: Box[]) {
     .sort((a, b) => a.top - b.top)
     .forEach((b) => {
       const y = b.top + b.height / 2;
-      const home = b.midLine ? 95.5 : b.left - 1.9;
+      const home = b.midLine ? 95.5 : (b.anchor ?? b.left) - 1.9;
       // Try the usual spot, then two steps left, then the right margin.
       const tries = b.midLine
         ? [home, home - DX, home - 2 * DX, home - 3 * DX]
@@ -176,14 +177,23 @@ async function renderPdf(bytes: ArrayBuffer, findings: Finding[]): Promise<Page[
           const width = Math.max(4, (r.to - r.from) * it.width);
           const top = y - fontH * 0.92;
           const height = fontH * 1.22;
+          // Text before the mark on the same line. A bullet alone doesn't
+          // count: the badge then sits left of the bullet, not in the margin.
+          const prefix = Array.from(it.str).slice(0, Math.floor(r.from * Array.from(it.str).length)).join("");
+          const isBullet = (t: string) => /^[\s•·▪▫◦‣⁃○●■□\-–*>]*$/.test(t);
+          let anchorX = isBullet(prefix) && prefix.length ? x : left;
+          const before = items.filter((o) => {
+            if (o === it || !o.str.trim()) return false;
+            const [ox, oy] = base.convertToViewportPoint(o.transform[4], o.transform[5]);
+            return Math.abs(oy - y) <= fontH * 0.6 && ox < left && ox + o.width > left - fontH * 3;
+          });
+          before.forEach((o) => {
+            if (!isBullet(o.str)) return;
+            const [ox] = base.convertToViewportPoint(o.transform[4], o.transform[5]);
+            anchorX = Math.min(anchorX, ox);
+          });
           const midLine =
-            k === 0 &&
-            (r.from > 0.02 ||
-              items.some((o) => {
-                if (o === it || !o.str.trim()) return false;
-                const [ox, oy] = base.convertToViewportPoint(o.transform[4], o.transform[5]);
-                return Math.abs(oy - y) <= fontH * 0.6 && ox < left && ox + o.width > left - fontH * 3;
-              }));
+            k === 0 && (!isBullet(prefix) || before.some((o) => !isBullet(o.str)));
           boxes.push({
             n: i + 1,
             severity: f.severity,
@@ -193,6 +203,7 @@ async function renderPdf(bytes: ArrayBuffer, findings: Finding[]): Promise<Page[
             height: (height / base.height) * 100,
             badge: k === 0,
             midLine,
+            anchor: (anchorX / base.width) * 100,
           });
         });
     });

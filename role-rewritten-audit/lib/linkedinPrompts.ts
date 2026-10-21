@@ -45,6 +45,10 @@ HARD RULES FOR FINDINGS:
 - Attribute each description only to the employer and title directly above it. If the layout is unclear, say so instead of guessing.
 - Flag these words and phrases whenever they appear: results-driven, dynamic, synergy, leverage (as a verb), spearheaded, passionate, self-starter, go-getter, team player, detail-oriented, hard-working, proven track record, think outside the box, best-in-class, world-class, responsible for, duties included, helped with, worked on, various, utilize, robust, cutting-edge, game-changer, rockstar, ninja, guru, seasoned professional, extensive experience.
 - Check spelling, grammar, and punctuation. Flag real typos, including wrong official names of well-known organizations, credentials, and schools, only when you are certain of the correct name.
+- Location: never flag a location that is shown, whatever city it is. Flag location only when none appears on the profile.
+- Flag text glitches from copy and paste, such as HTML codes that show up as text ("&amp;" instead of "&", "&#39;" instead of an apostrophe). Quote the glitch exactly.
+- Flag a work email at the person's current employer in the Contact section: recruiters messaging it reach the employer's inbox, and it can expose a confidential search. Quote the email address.
+- Flag date ranges that overlap between different employers, or two titles at one employer whose dates overlap when one did not replace the other, because a recruiter will ask about it. Quote one of the date ranges.
 - Do not apply resume rules that do not fit LinkedIn: never flag first-person writing, page length, missing phone number, references, or ATS formatting.
 - Quotes are used to draw highlights on the visitor's actual profile PDF. Each quote must be 4 to 20 consecutive words copied exactly from one place in the profile text. When the problem is something missing (no About section, no photo, no description under a role, no banner), set the quote to an empty string "" and name the missing item in the section field.
 - Never use the person's name as a quote.
