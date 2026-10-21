@@ -87,9 +87,26 @@ export function overlappingDates(text: string, now = new Date()): AuditFinding[]
   return out;
 }
 
+/** HTML codes that leaked into the text, such as "P&amp;L" shown instead of "P&L". */
+export function htmlGlitch(text: string): AuditFinding | null {
+  const m = text.match(/\S*&(?:amp|lt|gt|quot|apos|nbsp|#\d{2,5}|#x[0-9a-f]{2,4});\S*/i);
+  if (!m) return null;
+  const shown = m[0].replace(/[,.;:]+$/, "");
+  const fixed = shown
+    .replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"').replace(/&apos;|&#39;|&#x27;/gi, "'").replace(/&nbsp;/gi, " ");
+  return {
+    section: "Text glitch",
+    severity: "warning",
+    quote: shown,
+    note: `Your profile shows "${shown}" where you meant "${fixed}". It's a copy-and-paste glitch, and recruiters read it as carelessness.`,
+    fix: `Edit that section on LinkedIn and retype "${fixed}".`,
+  };
+}
+
 /** Adds rule findings the AI didn't already make. */
 export function addRuleFindings(findings: AuditFinding[], text: string): AuditFinding[] {
-  const extra = [currentEmployerEmail(text), ...overlappingDates(text)].filter((f): f is AuditFinding => !!f);
+  const extra = [htmlGlitch(text), currentEmployerEmail(text), ...overlappingDates(text)].filter((f): f is AuditFinding => !!f);
   const seen = findings.map((f) => (f.quote ?? "").toLowerCase());
   const fresh = extra.filter((e) => {
     const q = e.quote.toLowerCase();

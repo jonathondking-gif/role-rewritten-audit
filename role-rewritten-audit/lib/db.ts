@@ -68,7 +68,7 @@ export async function getAudit(id: string): Promise<AuditRecord | null> {
 }
 
 /** Bump this when the LinkedIn audit prompt changes. */
-export const LINKEDIN_AUDIT_VERSION = "2026-10-21c";
+export const LINKEDIN_AUDIT_VERSION = "2026-10-21d";
 
 /** Fingerprint of the uploaded file plus the audit version. */
 export function fileHash(buffer: Buffer): string {
