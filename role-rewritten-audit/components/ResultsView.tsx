@@ -417,7 +417,7 @@ export default function ResultsView({ kind: kindProp }: { kind?: "resume" | "lin
             </h2>
             <p className="mx-auto mt-2 max-w-xl text-center text-[#9DB2CC]">
               {li && "I rewrite your headline, About section, and experience entries, and your resume to match. "}AI drafts it. A recruiter with 15+ years of hiring experience reviews every line before it reaches
-              you. Delivered within 24 hours on business days.
+              you. Delivered within 48 hours on business days, with an optional 15-minute kickoff call first.
             </p>
             <div className={`mt-6 grid gap-4 ${li ? "mx-auto max-w-2xl md:grid-cols-2" : "md:grid-cols-3"}`}>
               {tiers.map((t) => (
@@ -444,7 +444,7 @@ export default function ResultsView({ kind: kindProp }: { kind?: "resume" | "lin
               </p>
             )}
             <p className="mx-auto mt-4 max-w-xl text-center text-sm text-[#9DB2CC]">
-              Unlimited revisions for 14 days. If you are not getting responses within 60 days, I will rewrite it free.
+              Unlimited revisions for 14 days. If you've applied to at least 15 matching roles and aren't getting responses within 60 days, I'll rewrite it free.
             </p>
           </div>
           )}
