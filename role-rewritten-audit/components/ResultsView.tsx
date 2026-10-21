@@ -444,7 +444,7 @@ export default function ResultsView({ kind: kindProp }: { kind?: "resume" | "lin
               </p>
             )}
             <p className="mx-auto mt-4 max-w-xl text-center text-sm text-[#9DB2CC]">
-              Unlimited revisions for 14 days. If you've applied to at least 15 matching roles and aren't getting responses within 60 days, I'll rewrite it free.
+              Unlimited revisions for 14 days. If you&apos;ve applied to at least 15 matching roles and aren&apos;t getting responses within 60 days, I&apos;ll rewrite it free.
             </p>
           </div>
           )}
